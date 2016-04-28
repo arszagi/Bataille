@@ -1,0 +1,12 @@
+#ifndef BATAILLE_MESSAGES_H
+#define BATAILLE_MESSAGES_H
+
+#define CANCEL 0
+
+#define REGISTER 1
+
+#define INSCRIPTION_STATUS 2
+
+
+#define
+#endif //BATAILLE_MESSAGES_H

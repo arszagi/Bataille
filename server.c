@@ -15,11 +15,16 @@
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
+#include "utils.h"
+#include "constants.h"
+#include "network.h"
 
 void argument_check(int argc, char ** argv);
 
 int main(int argc, char ** argv){
     argument_check(argc, argv);
+    create_server(atoi(argv[1]), MAX_PLAYERS);
+    return 0;
 }
 
 void argument_check(int argc, char ** argv){
@@ -30,5 +35,8 @@ void argument_check(int argc, char ** argv){
                 "USAGE : ./server PORT [Sortie]");
         exit(EXIT_FAILURE);
     }
-    if(argv[1])
+    if(!isNumeric(argv[1])){
+        fprintf(stderr, "Le numéro de port doit être un entier \n");
+        exit(EXIT_FAILURE);
+    }
 }
