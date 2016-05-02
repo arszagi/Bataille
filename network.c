@@ -54,5 +54,6 @@ int create_server(int port_number, int max_connections) {
 }
 
 Message decode(char *string) {
-
+    Message message;
+    return message;
 }
