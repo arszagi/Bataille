@@ -6,6 +6,12 @@
 #define BATAILLE_CONSTANTS_H
 
 /*
+ * Définit TRUE && FALSE
+ */
+#define TRUE 1
+#define FALSE 0
+
+/*
  * Nombre maximum de joueurs
  */
 #define MAX_PLAYERS 4
