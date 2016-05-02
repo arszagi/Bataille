@@ -46,7 +46,7 @@ int create_server(int port_number, int max_connections) {
     /*
      * Troisième étape ecoute du serveur sur le port
      */
-    if(listen(server_fd, 5) == -1 ){
+    if(listen(server_fd, 3) < 0 ){
         // TODO Error management
         exit(EXIT_FAILURE);
     }

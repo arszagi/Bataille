@@ -25,7 +25,7 @@ void argument_check(int argc, char ** argv);
 void register_signal_handlers();
 // Equivalent to sig_end_handler(int signal_number)
 void closing_handler(int signal_number);
-Message read_message(int fd);
+Message read_message(int sd);
 
 int server_fd;
 
@@ -33,10 +33,21 @@ int server_fd;
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main(int argc, char ** argv){
 
-    int temp_fd;
+    int temp_sd;
+    int max_sd;
+    int sd; // socket descriptor
+    int select_result;
+
     argument_check(argc, argv);
     server_fd = create_server(atoi(argv[1]), MAX_PLAYERS);
     fd_set file_descriptor_set;
+
+    /* Nous avons un socket par joueur, il nous faut donc MAX_PLAYERS sockets d'ouverts ! */
+    int client_socket[MAX_PLAYERS];
+
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        client_socket[i] = 0;
+    }
 
     /*
      * Le serveur ne s'arrête jamais, nous avons donc recours à une boucle infinie
@@ -44,16 +55,58 @@ int main(int argc, char ** argv){
      */
     while(TRUE){
         // Ici notre serveur doit tourner.
+        FD_ZERO(&file_descriptor_set);
+        FD_SET(server_fd, &file_descriptor_set);
+        max_sd = server_fd;
 
-        // Nouvelle connexion :
-        if(FD_ISSET(server_fd, &file_descriptor_set)){
-            if((temp_fd = accept(server_fd, NULL, 0)) < 0){
-                // TODO : Error management
-                raise(SIGTERM);
+        /* Configure l'écoute sur nos 4 sockets */
+        for(int i = 0; i < MAX_PLAYERS; i++){
+            int socket_descriptor = client_socket[i];
+            if(socket_descriptor > 0){
+                FD_SET(socket_descriptor, &file_descriptor_set);
+            }
+            if(socket_descriptor > max_sd){
+                socket_descriptor = max_sd;
             }
         }
 
-        // Ecoute le message
+        /* Attend une activité */
+        select_result = select(max_sd + 1, &file_descriptor_set, NULL, NULL, NULL);
+
+        if(select_result < 0){
+            if(errno == EBADF){
+                // TODO : Error management
+            }else if(errno == EINTR){
+                // TODO : Error management
+            }
+            continue;
+        }
+
+        /* Nouvelle connexion */
+        if(FD_ISSET(server_fd, &file_descriptor_set)){
+            if((temp_sd = accept(server_fd, NULL, 0)) < 0) {
+                // TODO : Error management
+                raise(SIGTERM);
+            }
+
+            Message message = read_message(temp_sd);
+
+            if(message.type != REGISTER) {
+                // TODO : Renvoyer une erreur
+                continue;
+            }
+
+            /* On ajoute ce nouveau socket à la table des sockets */
+            for(int i = 0; i < MAX_PLAYERS; i++){
+                if(client_socket[i] == 0){
+                    client_socket[i] = temp_sd;
+                    break;
+                }
+            }
+
+            char * inscrit = "Inscrit";
+            send(temp_sd, inscrit, strlen(inscrit), 0);
+        }
     }
     return 0;
 }
@@ -88,6 +141,12 @@ void closing_handler(int signal_number){
     exit(EXIT_SUCCESS);
 }
 
-Message read_message(int fd){
+Message read_message(int sd){
+    Message message;
+    if(recv(sd, &message, sizeof(message), 0) <= 0){
+        /* TODO : Erreur ou déconnexion ??? Je sais pas */
+    } else {
 
+    }
+    return message;
 }
