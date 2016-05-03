@@ -8,7 +8,7 @@
 #include "constants.h"
 
 typedef enum phase {
-    REGISTER,
+    REGISTRATION,
     PLAY
 } Phase;
 
