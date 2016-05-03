@@ -20,6 +20,7 @@
 #include "constants.h"
 #include "network.h"
 #include "messages.h"
+#include "game.h"
 
 void argument_check(int argc, char ** argv);
 void register_signal_handlers();
@@ -28,6 +29,7 @@ void closing_handler(int signal_number);
 Message read_message(int sd);
 
 int server_fd;
+Game game_server;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -91,9 +93,24 @@ int main(int argc, char ** argv){
 
             Message message = read_message(temp_sd);
 
+            if(game_server.phase != REGISTER){
+                // TODO : Manage the registration
+
+
+            }
             if(message.type != REGISTER) {
                 // TODO : Renvoyer une erreur
                 continue;
+            }
+
+            /* On enregistre notre nouvel user */
+            for(int i = 0; i < MAX_PLAYERS; i++){
+                if(game_server.players[i].socket != 0){
+                    continue;
+                }
+                game_server.players[i].socket = temp_sd;
+                // TODO : Ajouter une ligne de log
+                break;
             }
 
             /* On ajoute ce nouveau socket à la table des sockets */
