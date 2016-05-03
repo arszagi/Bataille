@@ -56,7 +56,6 @@ int main(int argc, char ** argv){
      * while(TRUE) et à des conditions de ruptures en cas d'erreur
      */
     while(TRUE){
-        // Ici notre serveur doit tourner.
         FD_ZERO(&file_descriptor_set);
         FD_SET(server_fd, &file_descriptor_set);
         max_sd = server_fd;
