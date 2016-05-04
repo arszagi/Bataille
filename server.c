@@ -35,8 +35,7 @@ Game game_server;
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main(int argc, char ** argv){
 
-    int temp_sd;
-    int max_sd;
+    int temp_sd, max_sd, i;
     int sd; // socket descriptor
     int select_result;
 
@@ -47,7 +46,8 @@ int main(int argc, char ** argv){
     /* Nous avons un socket par joueur, il nous faut donc MAX_PLAYERS sockets d'ouverts ! */
     int client_socket[MAX_PLAYERS];
 
-    for (int i = 0; i < MAX_PLAYERS; i++) {
+
+    for (i = 0; i < MAX_PLAYERS; i++) {
         client_socket[i] = 0;
     }
 
@@ -62,7 +62,7 @@ int main(int argc, char ** argv){
         max_sd = server_fd;
 
         /* Configure l'écoute sur nos 4 sockets */
-        for(int i = 0; i < MAX_PLAYERS; i++){
+        for(i = 0; i < MAX_PLAYERS; i++){
             int socket_descriptor = client_socket[i];
             if(socket_descriptor > 0){
                 FD_SET(socket_descriptor, &file_descriptor_set);
@@ -104,7 +104,7 @@ int main(int argc, char ** argv){
             }
 
             /* On enregistre notre nouvel user */
-            for(int i = 0; i < MAX_PLAYERS; i++){
+            for(i = 0; i < MAX_PLAYERS; i++){
                 if(game_server.players[i].socket != 0){
                     continue;
                 }
@@ -114,7 +114,7 @@ int main(int argc, char ** argv){
             }
 
             /* On ajoute ce nouveau socket à la table des sockets */
-            for(int i = 0; i < MAX_PLAYERS; i++){
+            for(i = 0; i < MAX_PLAYERS; i++){
                 if(client_socket[i] == 0){
                     client_socket[i] = temp_sd;
                     break;
