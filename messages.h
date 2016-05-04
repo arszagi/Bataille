@@ -1,3 +1,10 @@
+/*
+ * Série 3
+ * Arszagi vel Harszagi Kamil : karszag15
+ * Maton Anthony : amaton15
+ *
+ */
+
 #ifndef BATAILLE_MESSAGES_H
 #define BATAILLE_MESSAGES_H
 

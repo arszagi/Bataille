@@ -1,6 +1,9 @@
-//
-// Created by Anthony Maton on 28/04/16.
-//
+/*
+ * Série 3
+ * Arszagi vel Harszagi Kamil : karszag15
+ * Maton Anthony : amaton15
+ *
+ */
 
 #include <stdlib.h>
 #include <netinet/in.h>

@@ -1,6 +1,9 @@
-//
-// Created by Anthony Maton on 3/05/16.
-//
+/*
+ * Série 3
+ * Arszagi vel Harszagi Kamil : karszag15
+ * Maton Anthony : amaton15
+ *
+ */
 
 #ifndef BATAILLE_CLIENT_H
 #define BATAILLE_CLIENT_H
@@ -9,10 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "utils.h";
+#include "utils.h"
 #include "game.h"
-#include "network.h";
-#include "messages.h";
+#include "network.h"
+#include "messages.h"
 
 
 #define IP_ADDRESS 127.0.0.1
@@ -20,6 +23,7 @@
 void argument_check(int argc, char ** argv);
 void ask_pseudo();
 void send_message(int code);
+Message read_message(int sd);
 
 /*
  * Stockage des affichages du client
