@@ -21,6 +21,7 @@ int main(int argc, char ** argv){
     /* On prépare les sockets */
     int port = atoi(argv[1]);
     server_socket = connect_server(port);
+    send_message(REGISTER);
 
 }
 
