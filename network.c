@@ -53,6 +53,29 @@ int create_server(int port_number, int max_connections) {
     return server_fd;
 }
 
+int connect_server(int port_number){
+    /* Création du socket */
+    int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_descriptor < 0){
+        // TODO : Error management
+        exit(EXIT_FAILURE);
+    }
+
+    /* Connexion au port */
+    struct sockaddr_in sin = {0};
+    sin.sin_family      = AF_INET;
+    sin.sin_port        = htons(port_number);
+    sin.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if(connect(socket_descriptor, (struct sockaddr *) &sin, sizeof(struct sockaddr)) == -1){
+        // TODO : Error management
+        exit(EXIT_FAILURE);
+    }
+
+    /* On renvoie le socket qui est connecté au serveur */
+    return socket_descriptor;
+}
+
 Message decode(char *string) {
     Message message;
     return message;
