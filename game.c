@@ -1,5 +1,8 @@
-//
-// Created by Anthony Maton on 3/05/16.
-//
+/*
+ * Série 3
+ * Arszagi vel Harszagi Kamil : karszag15
+ * Maton Anthony : amaton15
+ *
+ */
 
 #include "game.h"

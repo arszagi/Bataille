@@ -3,11 +3,11 @@
  * Arszagi vel Harszagi Kamil : karszag15
  * Maton Anthony : amaton15
  *
- * Point d'entrée de l'application client.
  */
 
 #include <sys/socket.h>
 #include "client.h"
+
 
 Player my_player;
 int server_socket;
@@ -22,7 +22,17 @@ int main(int argc, char ** argv){
     int port = atoi(argv[1]);
     server_socket = connect_server(port);
     send_message(REGISTER);
+    Message validation;
 
+    validation = read_message(server_socket);
+    if (validation.type == 2){
+        if (validation.payload.number == 1) {
+            fprintf(stdout, "Inscription réussie. Veuillez patientiez, le jeu va bientôt commancer.");
+        } else if (validation.payload.number == 0) {
+            fprintf(stdout, "Echec d'inscription." );
+        }
+    }
+    return 0;
 }
 
 void argument_check(int argc, char ** argv){
@@ -49,6 +59,7 @@ void ask_pseudo(){
         }
 
         length = strlen(strtok((char *) my_player.name, "\n"));
+
         if(length < 1){
             printf(name_is_too_short);
         }
@@ -69,3 +80,14 @@ void send_message(int code){
         }
     }
 }
+
+Message read_message(int sd){
+    Message val;
+    if(recv(sd, &val, sizeof(val), 0) <= 0){
+        /* TODO : Erreur ou déconnexion ??? Je sais pas */
+    } else {
+
+    }
+    return val;
+}
+

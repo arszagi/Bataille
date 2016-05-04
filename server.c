@@ -55,6 +55,7 @@ int main(int argc, char ** argv){
      * Le serveur ne s'arrête jamais, nous avons donc recours à une boucle infinie
      * while(TRUE) et à des conditions de ruptures en cas d'erreur
      */
+
     while(TRUE){
         // Ici notre serveur doit tourner.
         FD_ZERO(&file_descriptor_set);
@@ -86,14 +87,17 @@ int main(int argc, char ** argv){
 
         /* Nouvelle connexion */
         if(FD_ISSET(server_fd, &file_descriptor_set)){
+
             if((temp_sd = accept(server_fd, NULL, 0)) < 0) {
+
                 // TODO : Error management
                 raise(SIGTERM);
             }
 
             Message message = read_message(temp_sd);
 
-            if(game_server.phase != REGISTER){
+            if(game_server.phase != REGISTRATION){
+
                 // TODO : Manage the registration
 
 
@@ -109,9 +113,18 @@ int main(int argc, char ** argv){
                     continue;
                 }
                 game_server.players[i].socket = temp_sd;
+                fprintf(stderr, "Joueur : %s inscrit.", message.payload.name);
+                Message ret;
+                ret.type = INSCRIPTION_STATUS;
+                ret.payload.number = 1;
+                send(temp_sd, &ret, sizeof(ret), 0);
                 // TODO : Ajouter une ligne de log
                 break;
             }
+            Message ret;
+            ret.type = INSCRIPTION_STATUS;
+            ret.payload.number = 0;
+            send(temp_sd, &ret, sizeof(ret), 0);
 
             /* On ajoute ce nouveau socket à la table des sockets */
             for(i = 0; i < MAX_PLAYERS; i++){
@@ -120,9 +133,6 @@ int main(int argc, char ** argv){
                     break;
                 }
             }
-
-            char * inscrit = "Inscrit";
-            send(temp_sd, inscrit, strlen(inscrit), 0);
         }
     }
     return 0;
