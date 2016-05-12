@@ -19,6 +19,9 @@
  */
 #define MAX_PLAYERS 4
 
+/* Nombre minimum de joueurs */
+#define MIN_PLAYERS 2
+
 /*
  * Temps avant lancement de la partie entre deux inscriptions (en seconde)
  */
