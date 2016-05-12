@@ -29,6 +29,7 @@ void closing_handler(int signal_number);
 Message read_message(int sd);
 
 int server_fd;
+int semaphore;
 Game game_server;
 
 #pragma clang diagnostic push
@@ -50,6 +51,7 @@ int main(int argc, char ** argv){
     for (i = 0; i < MAX_PLAYERS; i++) {
         client_socket[i] = 0;
     }
+
 
     /*
      * Le serveur ne s'arrête jamais, nous avons donc recours à une boucle infinie
