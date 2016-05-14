@@ -136,7 +136,7 @@ int create_shared_memory(int is_server) {
 
     shmflg = (is_server) ? IPC_CREAT|0666 : 0666;
 
-    if( (shmid=shmget(key, sizeof(struct memory), shmflg)) < 0)
+    if( (shmid=shmget(key, sizeof(Scoreboard), shmflg)) < 0)
     {
         /* TODO Error management */
         exit(EXIT_FAILURE);
@@ -185,7 +185,7 @@ int create_shared_reader_memory(int is_server)
 
     shmflg = (is_server) ? IPC_CREAT|0666 : 0666;
 
-    if ((reader_memory_id = shmget(get_reader_memory_token(), sizeof(struct memory), shmflg)) < 0)
+    if ((reader_memory_id = shmget(get_reader_memory_token(), sizeof(Scoreboard), shmflg)) < 0)
     {
         /* TODO : Error management */
         exit(EXIT_FAILURE);
