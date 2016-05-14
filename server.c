@@ -16,21 +16,24 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/select.h>
+#include <pwd.h>
+#include <sys/fcntl.h>
 #include "utils.h"
 #include "constants.h"
 #include "network.h"
-#include "messages.h"
 #include "game.h"
+#include "shared_memory.h"
+#include "server.h"
 
-void argument_check(int argc, char ** argv);
-void register_signal_handlers();
-// Equivalent to sig_end_handler(int signal_number)
-void closing_handler(int signal_number);
-Message read_message(int sd);
 
 int server_fd;
-int semaphore;
 Game game_server;
+
+/* Mémoire partagée */
+int shared_memory;
+Scoreboard *shared_memory_ptr;
+int reader_memory;
+struct reader_memory *reader_memory_ptr;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -44,6 +47,10 @@ int main(int argc, char ** argv){
     server_fd = create_server(atoi(argv[1]), MAX_PLAYERS);
     fd_set file_descriptor_set;
 
+    /* Crée le fichier de lock qui empêche de lançer le logiciel plusieurs fois (entre autres) */
+    set_lock();
+
+
     /* Nous avons un socket par joueur, il nous faut donc MAX_PLAYERS sockets d'ouverts ! */
     int client_socket[MAX_PLAYERS];
 
@@ -51,6 +58,15 @@ int main(int argc, char ** argv){
     for (i = 0; i < MAX_PLAYERS; i++) {
         client_socket[i] = 0;
     }
+
+    /* Initialisation de la mémoire partagée (Scoreboard) et des sémaphores */
+    shared_memory = create_shared_memory(TRUE);
+    shared_memory_ptr = attach_memory(shared_memory);
+    init_semaphore(TRUE);
+        /* TODO : Il faudrait un peu plus d'explications pour être sûr qu'on comprenne bien */
+    reader_memory = create_shared_memory(TRUE);
+    reader_memory_ptr = access_shared_reader_memory(reader_memory);
+    reader_memory_ptr->reader_count = 0;
 
 
     /*
@@ -99,10 +115,7 @@ int main(int argc, char ** argv){
             Message message = read_message(temp_sd);
 
             if(game_server.phase != REGISTRATION){
-
                 // TODO : Manage the registration
-
-
             }
             if(message.type != REGISTER) {
                 // TODO : Renvoyer une erreur
@@ -178,4 +191,55 @@ Message read_message(int sd){
 
     }
     return message;
+}
+
+void set_lock(){
+    char lock_file[MAX_ARRAY_SIZE];
+
+    /* Fichier à bloquer */
+    const char *home_dir = getpwuid(getuid())->pw_dir;
+    sprintf(lock_file,"%s/bataille.lock", home_dir);
+
+    /* Vérifie que le fichier est accessible */
+    if( access(lock_file, F_OK)==0 ) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    if ((open(lock_file, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IROTH)) == -1) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+    /* TODO : Error management */
+}
+
+int remove_lock() {
+    char lock_file[MAX_ARRAY_SIZE];
+
+    /* Fichier lock */
+    const char *home_dir = getpwuid(getuid())->pw_dir;
+    sprintf(lock_file,"%s/bataille.lock", home_dir);
+
+    if( unlink(lock_file)==-1 ) {
+        /* TODO : Error management */
+        return 1;
+    }
+
+    /* TODO : Error management */
+    return 0;
+}
+
+/*
+ * Vérifie que nous avons au moins deux joueurs
+ */
+int enough_players() {
+    int i;
+    int count = 0;
+    for(i = 0; i < MAX_PLAYERS; i++){
+        if(game_server.players[i].socket > 0) {
+            count++;
+        }
+    }
+
+    return count >= MIN_PLAYERS;
 }
