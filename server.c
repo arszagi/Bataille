@@ -168,17 +168,31 @@ void argument_check(int argc, char ** argv){
 }
 
 void register_signal_handlers(){
-    if(signal(SIGINT, closing_handler) == SIG_ERR) {
+    if(signal(SIGINT, sig_end_handler) == SIG_ERR) {
         // TODO : Error management
         exit(EXIT_FAILURE);
     }
-    if(signal(SIGTERM, closing_handler) == SIG_ERR) {
+    if(signal(SIGTERM, sig_end_handler) == SIG_ERR) {
         // TODO : Error management
         exit(EXIT_FAILURE);
     }
 }
 
-void closing_handler(int signal_number){
+/*
+ * Appeler en cas de signal de fin
+ * Libère les ressources IPC, Sémaphores, Lock, Socket, ...
+ */
+void sig_end_handler(int signal_number){
+    shmdt(shared_memory_ptr);
+    shmctl(shared_memory, IPC_RMID, NULL);
+
+    shmdt(reader_memory_ptr);
+    shmctl(reader_memory, IPC_RMID, NULL);
+
+    /* TODO : Signaler que l'effacement de la shared memory est un succès */
+
+    delete_semaphores();
+    remove_lock();
     close(server_fd);
     exit(EXIT_SUCCESS);
 }
@@ -242,4 +256,11 @@ int enough_players() {
     }
 
     return count >= MIN_PLAYERS;
+}
+
+void start_game() {
+    /* On change la phase de jeu */
+    game_server.phase = PLAY;
+
+    /* TODO : Mettre le reste de la magie */
 }
