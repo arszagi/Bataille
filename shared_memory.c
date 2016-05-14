@@ -15,7 +15,7 @@
 int semaphore_descriptor = -1;
 
 key_t get_semaphore_token() {
-    char lock_file[1024];
+    char lock_file[MAX_ARRAY_SIZE];
     key_t semaphore_key;
 
     sprintf(lock_file,"%s/bataille.lock", getpwuid(getuid())->pw_dir);
@@ -115,10 +115,10 @@ int semaphore_down(int semaphore)
 
 key_t get_shared_memory_token()
 {
-    char lock_file[1024];
+    char lock_file[MAX_ARRAY_SIZE];
     key_t semaphore_key;
 
-    sprintf(lock_file,"%s/streams.lock", getpwuid(getuid())->pw_dir);
+    sprintf(lock_file,"%s/bataille.lock", getpwuid(getuid())->pw_dir);
 
     if( (semaphore_key=ftok(lock_file, FTOK_SHARED_MEMORY_ID)) == -1 )
     {
@@ -156,4 +156,56 @@ Scoreboard *attach_memory(int shmid) {
     }
 
     return shared_mem_ptr;
+}
+
+/* Reader access to the memory management */
+
+key_t get_reader_memory_token()
+{
+    char lock_file[MAX_ARRAY_SIZE];
+    key_t memory_token;
+
+    sprintf(lock_file,"%s/bataille.lock", getpwuid(getuid())->pw_dir);
+
+    if( (memory_token=ftok(lock_file, FTOK_READER_MEMORY_ID)) == -1 )
+    {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    return memory_token;
+}
+
+/**
+ * Creates the shared 'reader' memory and returns his ID.
+ */
+int create_shared_reader_memory(int is_server)
+{
+    int reader_memory_id, shmflg;
+
+    shmflg = (is_server) ? IPC_CREAT|0666 : 0666;
+
+    if ((reader_memory_id = shmget(get_reader_memory_token(), sizeof(struct memory), shmflg)) < 0)
+    {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    return reader_memory_id;
+}
+
+/**
+ * Attach the shared reader memory.
+ */
+struct reader_memory* access_shared_reader_memory(int reader_memory_id)
+{
+    struct reader_memory *reader_memory_ptr;
+
+    if( (reader_memory_ptr=shmat(reader_memory_id, NULL, 0)) == (void *)-1 )
+    {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    return reader_memory_ptr;
 }

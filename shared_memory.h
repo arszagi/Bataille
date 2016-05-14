@@ -7,8 +7,11 @@
 
 #include "constants.h"
 
+#define MAX_ARRAY_SIZE 1024
+
 #define FTOK_SEMAPHORES_ID 's'
 #define FTOK_SHARED_MEMORY_ID 'm'
+#define FTOK_READER_MEMORY_ID 'r'
 
 #define SEMAPHORE_MUTEX 0
 #define SEMAPHORE_ACCESS 1
@@ -31,5 +34,13 @@ typedef struct player {
 typedef struct Scoreboard {
     Player players[MAX_PLAYERS];
 } Scoreboard;
+
+struct reader_memory {
+    int reader_count;
+};
+
+key_t get_reader_memory_token();
+int create_shared_reader_memory(int is_server);
+struct reader_memory* access_shared_reader_memory(int reader_memory_id);
 
 #endif //BATAILLE_SHARED_MEMORY_H
