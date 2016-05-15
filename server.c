@@ -16,20 +16,24 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/select.h>
+#include <pwd.h>
+#include <sys/fcntl.h>
 #include "utils.h"
 #include "constants.h"
 #include "network.h"
 #include "messages.h"
 #include "game.h"
 
-void argument_check(int argc, char ** argv);
-void register_signal_handlers();
-// Equivalent to sig_end_handler(int signal_number)
-void closing_handler(int signal_number);
-Message read_message(int sd);
 
 int server_fd;
 Game game_server;
+int timer_status = TIMER_OFF;
+
+/* Mémoire partagée */
+int shared_memory;
+Scoreboard *shared_memory_ptr;
+int reader_memory;
+struct reader_memory *reader_memory_ptr;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -43,6 +47,10 @@ int main(int argc, char ** argv){
     server_fd = create_server(atoi(argv[1]), MAX_PLAYERS);
     fd_set file_descriptor_set;
 
+    /* Crée le fichier de lock qui empêche de lançer le logiciel plusieurs fois (entre autres) */
+    set_lock();
+
+
     /* Nous avons un socket par joueur, il nous faut donc MAX_PLAYERS sockets d'ouverts ! */
     int client_socket[MAX_PLAYERS];
 
@@ -50,6 +58,16 @@ int main(int argc, char ** argv){
     for (i = 0; i < MAX_PLAYERS; i++) {
         client_socket[i] = 0;
     }
+
+    /* Initialisation de la mémoire partagée (Scoreboard) et des sémaphores */
+    shared_memory = create_shared_memory(TRUE);
+    shared_memory_ptr = attach_memory(shared_memory);
+    init_semaphore(TRUE);
+        /* TODO : Il faudrait un peu plus d'explications pour être sûr qu'on comprenne bien */
+    reader_memory = create_shared_memory(TRUE);
+    reader_memory_ptr = access_shared_reader_memory(reader_memory);
+    reader_memory_ptr->reader_count = 0;
+
 
     /*
      * Le serveur ne s'arrête jamais, nous avons donc recours à une boucle infinie
@@ -89,7 +107,6 @@ int main(int argc, char ** argv){
         if(FD_ISSET(server_fd, &file_descriptor_set)){
 
             if((temp_sd = accept(server_fd, NULL, 0)) < 0) {
-
                 // TODO : Error management
                 raise(SIGTERM);
             }
@@ -97,10 +114,7 @@ int main(int argc, char ** argv){
             Message message = read_message(temp_sd);
 
             if(game_server.phase != REGISTRATION){
-
                 // TODO : Manage the registration
-
-
             }
             if(message.type != REGISTER) {
                 // TODO : Renvoyer une erreur
@@ -121,6 +135,8 @@ int main(int argc, char ** argv){
                 // TODO : Ajouter une ligne de log
                 break;
             }
+
+            /* Le jeu a déjà commencé ou on a atteint MAX_PLAYERS */
             Message ret;
             ret.type = INSCRIPTION_STATUS;
             ret.payload.number = 0;
@@ -132,6 +148,33 @@ int main(int argc, char ** argv){
                     client_socket[i] = temp_sd;
                     break;
                 }
+            }
+
+            User user = {};
+            /* 8 is arbitrary defined and thus doesn't require a constant */
+            strncpy(user.name, message.payload.name, 8);
+            game_server.players[i].user = user;
+            game_server.player_count += 1;
+
+            if(timer_status == TIMER_OFF) {
+                /* TODO : Réinitialiser la mémoire partagée */
+            }
+
+            semaphore_down(SEMAPHORE_ACCESS);
+            shared_memory_ptr->players[i] = user;
+            semaphore_up(SEMAPHORE_ACCESS);
+
+            /* TODO : Ajouter une ligne de log signalant l'inscription du nouveau joueur */
+
+            /*
+             * Si le timer est OFF (Il s'agit du premier inscrit, on lance le timer
+             * Si le timer est fini et que nous avons deux joueurs ou plus, on lance le jeu
+             */
+            if(timer_status == TIMER_OFF) {
+                /* TODO : Lancer l'alarme avec un alarm ou un select ou je sais pas trop */
+            }else if(timer_status == TIMER_FINISHED && enough_players()) {
+                /* TODO : Ajouter une ligne de log */
+                start_game();
             }
         }
     }
@@ -152,18 +195,41 @@ void argument_check(int argc, char ** argv){
     }
 }
 
-void register_signal_handlers(){
-    if(signal(SIGINT, closing_handler) == SIG_ERR) {
-        // TODO : Error management
+void register_signal_handlers() {
+    // End signal (CTRL+C)
+    if (signal(SIGINT, sig_end_handler) == SIG_ERR) {
+        /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
-    if(signal(SIGTERM, closing_handler) == SIG_ERR) {
-        // TODO : Error management
+
+    // Kill signal
+    if (signal(SIGTERM, sig_end_handler) == SIG_ERR ) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    // Timer alarm
+    if (signal(SIGALRM, alarm_timer_handler) == SIG_ERR) {
+        /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
 }
 
-void closing_handler(int signal_number){
+/*
+ * Appeler en cas de signal de fin
+ * Libère les ressources IPC, Sémaphores, Lock, Socket, ...
+ */
+void sig_end_handler(int signal_number){
+    shmdt(shared_memory_ptr);
+    shmctl(shared_memory, IPC_RMID, NULL);
+
+    shmdt(reader_memory_ptr);
+    shmctl(reader_memory, IPC_RMID, NULL);
+
+    /* TODO : Signaler que l'effacement de la shared memory est un succès */
+
+    delete_semaphores();
+    remove_lock();
     close(server_fd);
     exit(EXIT_SUCCESS);
 }
@@ -176,4 +242,71 @@ Message read_message(int sd){
 
     }
     return message;
+}
+
+void set_lock(){
+    char lock_file[MAX_ARRAY_SIZE];
+
+    /* Fichier à bloquer */
+    const char *home_dir = getpwuid(getuid())->pw_dir;
+    sprintf(lock_file,"%s/bataille.lock", home_dir);
+
+    /* Vérifie que le fichier est accessible */
+    if( access(lock_file, F_OK)==0 ) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    if ((open(lock_file, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IROTH)) == -1) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+    /* TODO : Error management */
+}
+
+int remove_lock() {
+    char lock_file[MAX_ARRAY_SIZE];
+
+    /* Fichier lock */
+    const char *home_dir = getpwuid(getuid())->pw_dir;
+    sprintf(lock_file,"%s/bataille.lock", home_dir);
+
+    if( unlink(lock_file)==-1 ) {
+        /* TODO : Error management */
+        return 1;
+    }
+
+    /* TODO : Error management */
+    return 0;
+}
+
+/*
+ * Vérifie que nous avons au moins deux joueurs
+ */
+int enough_players() {
+    int i;
+    int count = 0;
+    for(i = 0; i < MAX_PLAYERS; i++){
+        if(game_server.players[i].socket > 0) {
+            count++;
+        }
+    }
+
+    return count >= MIN_PLAYERS;
+}
+
+void start_game() {
+    /* On change la phase de jeu */
+    game_server.phase = PLAY;
+
+    /* TODO : Mettre le reste de la magie */
+}
+
+void alarm_timer_handler(int signal_number) {
+    /* TODO : Add a log entry */
+    timer_status = TIMER_FINISHED;
+
+    if(enough_players()) {
+        start_game();
+    }
 }
