@@ -21,8 +21,9 @@
 #include "utils.h"
 #include "constants.h"
 #include "network.h"
-#include "messages.h"
 #include "game.h"
+#include "shared_memory.h"
+#include "server.h"
 
 
 int server_fd;

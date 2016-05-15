@@ -7,10 +7,13 @@
 
 #include <sys/socket.h>
 #include "client.h"
+#include "shared_memory.h"
 
 
 Player my_player;
 int server_socket;
+Scoreboard *shared_memory_ptr;
+struct reader_memory *reader_memory_ptr;
 
 int main(int argc, char ** argv){
     argument_check(argc, argv);
@@ -25,13 +28,25 @@ int main(int argc, char ** argv){
     Message validation;
 
     validation = read_message(server_socket);
-    if (validation.type == 2){
-        if (validation.payload.number == 1) {
+    if (validation.type == INSCRIPTION_STATUS){
+        if (validation.payload.number == TRUE) {
             fprintf(stdout, "Inscription réussie. Veuillez patientiez, le jeu va bientôt commancer.");
-        } else if (validation.payload.number == 0) {
+        } else if (validation.payload.number == FALSE) {
             fprintf(stdout, "Echec d'inscription." );
         }
     }
+
+    /* Initialisation de l'accès à la mémoire partagée */
+    int shared_memory = create_shared_memory(FALSE);
+    shared_memory_ptr = attach_memory(shared_memory);
+
+    int reader_memory = create_shared_reader_memory(FALSE);
+    reader_memory_ptr = access_shared_reader_memory(reader_memory);
+
+    init_semaphore(FALSE);
+    /* Fin initialisation mémoire partagée */
+
+
     return 0;
 }
 
