@@ -28,6 +28,7 @@
 
 int server_fd;
 Game game_server;
+int timer_status = TIMER_OFF;
 
 /* Mémoire partagée */
 int shared_memory;
@@ -107,7 +108,6 @@ int main(int argc, char ** argv){
         if(FD_ISSET(server_fd, &file_descriptor_set)){
 
             if((temp_sd = accept(server_fd, NULL, 0)) < 0) {
-
                 // TODO : Error management
                 raise(SIGTERM);
             }
@@ -136,6 +136,8 @@ int main(int argc, char ** argv){
                 // TODO : Ajouter une ligne de log
                 break;
             }
+
+            /* Le jeu a déjà commencé ou on a atteint MAX_PLAYERS */
             Message ret;
             ret.type = INSCRIPTION_STATUS;
             ret.payload.number = 0;
@@ -147,6 +149,33 @@ int main(int argc, char ** argv){
                     client_socket[i] = temp_sd;
                     break;
                 }
+            }
+
+            User user = {};
+            /* 8 is arbitrary defined and thus doesn't require a constant */
+            strncpy(user.name, message.payload.name, 8);
+            game_server.players[i].user = user;
+            game_server.player_count += 1;
+
+            if(timer_status == TIMER_OFF) {
+                /* TODO : Réinitialiser la mémoire partagée */
+            }
+
+            semaphore_down(SEMAPHORE_ACCESS);
+            shared_memory_ptr->players[i] = user;
+            semaphore_up(SEMAPHORE_ACCESS);
+
+            /* TODO : Ajouter une ligne de log signalant l'inscription du nouveau joueur */
+
+            /*
+             * Si le timer est OFF (Il s'agit du premier inscrit, on lance le timer
+             * Si le timer est fini et que nous avons deux joueurs ou plus, on lance le jeu
+             */
+            if(timer_status == TIMER_OFF) {
+                /* TODO : Lancer l'alarme avec un alarm ou un select ou je sais pas trop */
+            }else if(timer_status == TIMER_FINISHED && enough_players()) {
+                /* TODO : Ajouter une ligne de log */
+                start_game();
             }
         }
     }
@@ -167,13 +196,22 @@ void argument_check(int argc, char ** argv){
     }
 }
 
-void register_signal_handlers(){
-    if(signal(SIGINT, sig_end_handler) == SIG_ERR) {
-        // TODO : Error management
+void register_signal_handlers() {
+    // End signal (CTRL+C)
+    if (signal(SIGINT, sig_end_handler) == SIG_ERR) {
+        /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
-    if(signal(SIGTERM, sig_end_handler) == SIG_ERR) {
-        // TODO : Error management
+
+    // Kill signal
+    if (signal(SIGTERM, sig_end_handler) == SIG_ERR ) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    // Timer alarm
+    if (signal(SIGALRM, alarm_timer_handler) == SIG_ERR) {
+        /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
 }
@@ -263,4 +301,13 @@ void start_game() {
     game_server.phase = PLAY;
 
     /* TODO : Mettre le reste de la magie */
+}
+
+void alarm_timer_handler(int signal_number) {
+    /* TODO : Add a log entry */
+    timer_status = TIMER_FINISHED;
+
+    if(enough_players()) {
+        start_game();
+    }
 }
