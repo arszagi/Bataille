@@ -28,10 +28,10 @@ int main(int argc, char ** argv){
     Message validation;
 
     validation = read_message(server_socket);
-    if (validation.type == 2){
-        if (validation.payload.number == 1) {
+    if (validation.type == INSCRIPTION_STATUS){
+        if (validation.payload.number == TRUE) {
             fprintf(stdout, "Inscription réussie. Veuillez patientiez, le jeu va bientôt commancer.");
-        } else if (validation.payload.number == 0) {
+        } else if (validation.payload.number == FALSE) {
             fprintf(stdout, "Echec d'inscription." );
         }
     }

@@ -14,6 +14,7 @@
 
 #define INSCRIPTION_STATUS 2
 
+
 typedef struct Message Message;
 
 union Payload {

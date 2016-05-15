@@ -26,13 +26,13 @@ int semaphore_down(int semaphore);
 int create_shared_memory(int is_server);
 struct Scoreboard *attach_memory(int shmid);
 
-typedef struct player {
+typedef struct line {
     char name[8];
     int score;
-} Player;
+} Line;
 
 typedef struct Scoreboard {
-    Player players[MAX_PLAYERS];
+    Line players[MAX_PLAYERS];
 } Scoreboard;
 
 struct reader_memory {
