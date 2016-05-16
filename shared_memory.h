@@ -5,6 +5,7 @@
 #ifndef BATAILLE_SHARED_MEMORY_H
 #define BATAILLE_SHARED_MEMORY_H
 
+#include <sys/ipc.h>
 #include "constants.h"
 
 #define MAX_ARRAY_SIZE 1024
@@ -26,13 +27,13 @@ int semaphore_down(int semaphore);
 int create_shared_memory(int is_server);
 struct Scoreboard *attach_memory(int shmid);
 
-typedef struct line {
+typedef struct user {
     char name[8];
     int score;
-} Line;
+} User;
 
 typedef struct Scoreboard {
-    Line players[MAX_PLAYERS];
+    User players[MAX_PLAYERS];
 } Scoreboard;
 
 struct reader_memory {

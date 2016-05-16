@@ -15,6 +15,7 @@ int server_socket;
 Scoreboard *shared_memory_ptr;
 struct reader_memory *reader_memory_ptr;
 
+#pragma clang diagnostic ignored "-Wformat"
 int main(int argc, char ** argv){
     argument_check(argc, argv);
 
@@ -76,7 +77,7 @@ void ask_pseudo(){
         length = strlen(strtok((char *) my_player.name, "\n"));
 
         if(length < 1){
-            printf(name_is_too_short);
+            printf("%s", name_is_too_short);
         }
     }
 }
