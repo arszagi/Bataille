@@ -31,5 +31,6 @@ void set_lock();
 int remove_lock();
 int enough_players();
 void start_game();
+void shared_memory_reset();
 
 #endif //BATAILLE_SERVER_H

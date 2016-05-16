@@ -152,13 +152,16 @@ int main(int argc, char ** argv){
             }
 
             User user = {};
-            /* 8 is arbitrary defined and thus doesn't require a constant */
-            strncpy(user.name, message.payload.name, 8);
+            strncpy(user.name, message.payload.name, NAME_SIZE);
             game_server.players[i].user = user;
             game_server.player_count += 1;
 
+            /*
+             * Si le timer est éteind, il s'agit d'une nouvelle partie :
+             * On réinitialise la mémoire partagée.
+             */
             if(timer_status == TIMER_OFF) {
-                /* TODO : Réinitialiser la mémoire partagée */
+                shared_memory_reset();
             }
 
             semaphore_down(SEMAPHORE_ACCESS);
@@ -172,7 +175,9 @@ int main(int argc, char ** argv){
              * Si le timer est fini et que nous avons deux joueurs ou plus, on lance le jeu
              */
             if(timer_status == TIMER_OFF) {
-                /* TODO : Lancer l'alarme avec un alarm ou un select ou je sais pas trop */
+                /* TODO : Ajouter une ligne de log. */
+                alarm(REGISTRATION_TIMER);
+                timer_status = TIMER_ON;
             }else if(timer_status == TIMER_FINISHED && enough_players()) {
                 /* TODO : Ajouter une ligne de log */
                 start_game();
@@ -310,4 +315,14 @@ void alarm_timer_handler(int signal_number) {
     if(enough_players()) {
         start_game();
     }
+}
+
+void shared_memory_reset() {
+    int i;
+    User user = {};
+    semaphore_down(SEMAPHORE_ACCESS);
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        shared_memory_ptr->players[i] = user;
+    }
+    semaphore_up(SEMAPHORE_ACCESS);
 }
