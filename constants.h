@@ -13,6 +13,7 @@
  */
 #define TRUE 1
 #define FALSE 0
+#define ERROR -1
 
 /*
  * Nombre maximum de joueurs
