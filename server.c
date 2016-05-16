@@ -15,7 +15,6 @@
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/select.h>
 #include <pwd.h>
 #include <sys/fcntl.h>
 #include "utils.h"
@@ -51,6 +50,8 @@ int main(int argc, char ** argv){
     /* Crée le fichier de lock qui empêche de lançer le logiciel plusieurs fois (entre autres) */
     set_lock();
 
+    /* Active la gestion de signal */
+    register_signal_handlers();
 
     /* Nous avons un socket par joueur, il nous faut donc MAX_PLAYERS sockets d'ouverts ! */
     int client_socket[MAX_PLAYERS];
@@ -258,7 +259,7 @@ void set_lock(){
     sprintf(lock_file,"%s/bataille.lock", home_dir);
 
     /* Vérifie que le fichier est accessible */
-    if( access(lock_file, F_OK)==0 ) {
+    if( access(lock_file, F_OK) == 0 ) {
         /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
@@ -304,6 +305,7 @@ int enough_players() {
 void start_game() {
     /* On change la phase de jeu */
     game_server.phase = PLAY;
+    send_cards();
 
     /* TODO : Mettre le reste de la magie */
 }
@@ -325,4 +327,28 @@ void shared_memory_reset() {
         shared_memory_ptr->players[i] = user;
     }
     semaphore_up(SEMAPHORE_ACCESS);
+}
+
+void send_cards(){
+    int * deck = fill_deck();
+    int dist_card = DECK_SIZE / game_server.player_count;
+    int i, j, ptr = 0;
+    Message hand;
+
+    for (i = 0; i < game_server.player_count ; i++ ) {
+        for (j = 0; j < dist_card; j++) {
+            game_server.players[i].hand[j] = deck[ptr];
+            ptr++;
+        }
+        for (j; j < DECK_SIZE; j++) {
+            game_server.players[i].hand[j] = NO_CARD;
+        }
+        hand.type = DISTRIBUTION_CARDS;
+        //hand.payload.hand = game_server.players[i].hand;
+        memcpy(hand.payload.hand, game_server.players[i].hand, DECK_SIZE * sizeof(int));
+        if (send(game_server.players[i].socket, &hand, sizeof(hand),0) <= 0) {
+            // TODO : log
+        }
+    }
+
 }

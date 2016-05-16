@@ -15,7 +15,8 @@ int server_socket;
 Scoreboard *shared_memory_ptr;
 struct reader_memory *reader_memory_ptr;
 
-#pragma clang diagnostic ignored "-Wformat"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main(int argc, char ** argv){
     argument_check(argc, argv);
 
@@ -47,6 +48,24 @@ int main(int argc, char ** argv){
     init_semaphore(FALSE);
     /* Fin initialisation mémoire partagée */
 
+    while (TRUE) {
+        Message message = read_message(server_socket);
+        memcpy(my_player.hand,message.payload.hand,DECK_SIZE * sizeof(int));
+        switch (message.type) {
+            case DISTRIBUTION_CARDS: {
+                int i;
+                for (i = 0; i < 26 ; i++) {
+                    printf("Voici mes cartes: %d",my_player.hand[i]);
+                }
+            }
+            case END_GAME: {
+                printf("Jeu terminé.");
+                break;
+            }
+            default:
+                break;
+        }
+    }
 
     return 0;
 }
@@ -101,8 +120,6 @@ Message read_message(int sd){
     Message val;
     if(recv(sd, &val, sizeof(val), 0) <= 0){
         /* TODO : Erreur ou déconnexion ??? Je sais pas */
-    } else {
-
     }
     return val;
 }

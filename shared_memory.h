@@ -18,6 +18,8 @@
 #define SEMAPHORE_ACCESS 1
 #define SINGLE_OPERATION 1
 
+#define KEY "bataille"
+
 
 void init_semaphore(int is_server);
 key_t get_semaphore_token();
