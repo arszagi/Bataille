@@ -37,6 +37,7 @@ struct reader_memory *reader_memory_ptr;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
+#pragma clang diagnostic ignored "-Wunused-value"
 int main(int argc, char ** argv){
 
     int temp_sd, max_sd, i;
@@ -77,6 +78,7 @@ int main(int argc, char ** argv){
      */
 
     while(TRUE){
+
         // Ici notre serveur doit tourner.
         FD_ZERO(&file_descriptor_set);
         FD_SET(server_fd, &file_descriptor_set);
@@ -179,6 +181,42 @@ int main(int argc, char ** argv){
             }else if(timer_status == TIMER_FINISHED && enough_players()) {
                 /* TODO : Ajouter une ligne de log */
                 start_game();
+            }
+        }
+        /*
+         * Il s'agit d'un client déjà enregistré
+         */
+        else {
+            for(i = 0; i < MAX_PLAYERS; i++) {
+                temp_sd = game_server.players[i].socket;
+                if(temp_sd == 0 || !FD_ISSET(temp_sd, &file_descriptor_set)) {
+                    continue;
+                }
+
+                Message message = read_message(temp_sd);
+
+                switch(message.type) {
+                    case SEND_CARD:
+                        if(game_server.phase != PLAY) {
+                            break;
+                        }
+                        game_server.working_memory[i] = message.payload.number;
+                        game_server.played += 1;
+                        /* On vérifie que tout les joueurs ait joué
+                         * le dernier joueur triggerera le calcul du gagnant et du score
+                         */
+                        if(game_server.played < game_server.player_count) {
+                            continue;
+                        } else {
+                            play_round();
+                            game_server.played = 0;
+                            int reset_walker;
+                            for(reset_walker = 0; reset_walker < game_server.player_count; reset_walker++){
+                                game_server.working_memory[reset_walker] = -1;
+                            }
+                        }
+                        break;
+                }
             }
         }
     }
@@ -302,6 +340,7 @@ int enough_players() {
 void start_game() {
     /* On change la phase de jeu */
     game_server.phase = PLAY;
+
     send_cards();
 
     /* TODO : Mettre le reste de la magie */
@@ -355,4 +394,39 @@ void cancel_game(int sd) {
     ret.type = INSCRIPTION_STATUS;
     ret.payload.number = 0;
     send(sd, &ret, sizeof(ret), 0);
+}
+
+void play_round() {
+    int i;
+    int pool[game_server.player_count];
+    int winner_socket;
+    for(i = 0; i < game_server.player_count - 1; i++){
+        if(game_server.working_memory[i] > game_server.working_memory[i+1]) {
+            winner_socket = game_server.players[i].socket;
+        }else {
+            winner_socket = game_server.players[i + 1].socket;
+        }
+        /* TODO : Optimize */
+        pool[i] = game_server.working_memory[i];
+        pool[i + 1] = game_server.working_memory[i+1];
+    }
+
+    /* Ce qu'on envoie au gagnant de la manche */
+    Message winner;
+    winner.type = 5;
+    memcpy(winner.payload.hand, pool, game_server.player_count);
+    send(winner_socket, &winner, sizeof(Message), 0);
+    free(&winner);
+
+    /* Ce qu'on envoie aux perdants de la manche */
+    Message looser;
+    looser.type = 5;
+    looser.payload.number = 0;
+    for(i = 0; i < game_server.player_count; i++){
+        if(game_server.players[i].socket == winner_socket) {
+            continue;
+        }
+        send(game_server.players[i].socket, &looser, sizeof(Message), 0);
+    }
+    free(&looser);
 }

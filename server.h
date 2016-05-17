@@ -34,5 +34,6 @@ void start_game();
 void shared_memory_reset();
 void send_cards();
 void cancel_game(int sd);
+void play_round();
 
 #endif //BATAILLE_SERVER_H

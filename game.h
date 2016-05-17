@@ -14,6 +14,7 @@
 
 #include "constants.h"
 #include "shared_memory.h"
+#include "messages.h"
 
 int * fill_deck();
 void print_cards();
@@ -35,6 +36,8 @@ typedef struct game {
     Phase phase;
     Player players[MAX_PLAYERS];
     int player_count;
+    int played;
+    int working_memory[MAX_PLAYERS];
 } Game;
 
 
