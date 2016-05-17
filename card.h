@@ -20,11 +20,19 @@
 #define BLACK   0
 #define RED     1
 
-char * format_card(int card);
+#define HEART_SYMBOL '♥'
+#define DIAMOND_SYMBOL '♦'
+#define CLUB_SYMBOL  '♣'
+#define SPADE_SYMBOL '♠'
+
+void print_card(int card);
 
 /*
  * Only accept RED or BLACK
  */
 char * color_code(int color);
 
+char * get_symbol(int symbol);
+
 #endif //BATAILLE_CARD_H
+

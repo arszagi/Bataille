@@ -6,18 +6,19 @@
 #include "card.h"
 
 
-char * format_card(int card) {
+void print_card(int card) {
     char *colored_card;
     char *type_display; /* AS -> King */
 
     int value = card / 4;
-    double symbols;
-    modf(card / 4.0, &symbols);
-    symbols *= 4;
+    int symbols = (int) (((card / 4.0) - value) * 4);
+    int color = symbols == 0 || symbols == 1 ? RED : BLACK;
+
+
 
     switch(value) {
         case AS:
-            asprintf(&type_display, "%d", value + 1);
+            printf("%s %d%s %s\n",color_code(color), value + 1, get_symbol(value), "\033[0m");
             break;
         case 1:
         case 2:
@@ -28,35 +29,18 @@ char * format_card(int card) {
         case 7:
         case 8:
         case 9:
-            asprintf(&type_display, "%d", value + 1);
+            printf("%s %d%s %s\n", color_code(color), value + 1, get_symbol(symbols), "\033[0m");
             break;
         case JACK:
-            asprintf(&type_display, "%s", "J");
+            printf("%s %c%s %s\n", color_code(color), 'J', get_symbol(symbols), "\033[0m");
             break;
         case QUEEN:
-            asprintf(&type_display, "%s", "Q");
+            printf("%s %c%s %s\n", color_code(color), 'Q', get_symbol(symbols), "\033[0m");
             break;
         case KING:
-            asprintf(&type_display, "%s", "K");
+            printf("%s %c%s %s\n", color_code(color), 'K', get_symbol(symbols), "\033[0m");
             break;
     }
-
-    switch((int) symbols) {
-        case HEART:
-            asprintf(&colored_card,"%s%d%s", color_code(RED), &type_display, "\033[0m");
-            break;
-        case DIAMOND:
-            asprintf(&colored_card,"%s%d%s", color_code(RED), &type_display, "\033[0m");
-            break;
-        case CLUB:
-            asprintf(&colored_card,"%s%d%s", color_code(BLACK), &type_display, "\033[0m");
-            break;
-        case SPADE:
-            asprintf(&colored_card,"%s%d%s", color_code(BLACK), &type_display, "\033[0m");
-            break;
-    }
-
-    return colored_card;
 }
 
 char * color_code(int color) {
@@ -64,6 +48,19 @@ char * color_code(int color) {
         return "\033[0;31;47m";
     }else if(color == BLACK) {
         return "\033[0;30;47m";
+    }
+}
+
+char * get_symbol(int symbol){
+    switch(symbol) {
+        case HEART:
+            return "♥";
+        case DIAMOND:
+            return "♦";
+        case CLUB:
+            return "♣";
+        case SPADE:
+            return "♠";
     }
 }
 

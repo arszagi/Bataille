@@ -7,6 +7,7 @@
 
 #include <sys/socket.h>
 #include "client.h"
+#include "card.h"
 #include "shared_memory.h"
 
 
@@ -58,7 +59,7 @@ int main(int argc, char ** argv){
                         break;
                     }
                     //TODO a changer
-                    printf("Voici mes cartes: %d \n",my_player.hand[i]);
+                    print_card(my_player.hand[i]);
                 }
                 continue;
             }
