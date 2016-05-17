@@ -8,13 +8,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-
 #include "game.h"
 
 int deck[DECK_SIZE];
 
 /*Remplit le tableau avec des cartes et le melange ensuite.*/
 int * fill_deck() {
+    srand(time(NULL));
     int i, j, n = DECK_SIZE;
     for (i = 0; i < DECK_SIZE ; i++) {
         deck[i] = i;

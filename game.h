@@ -16,6 +16,7 @@
 #include "shared_memory.h"
 
 int * fill_deck();
+void print_cards();
 
 typedef enum phase {
     REGISTRATION,

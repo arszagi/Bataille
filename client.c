@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include "client.h"
 #include "shared_memory.h"
+#include "card.h"
 
 
 Player my_player;
@@ -51,22 +52,15 @@ int main(int argc, char ** argv){
         Message message = read_message(server_socket);
         memcpy(my_player.hand,message.payload.hand,DECK_SIZE * sizeof(int));
         switch (message.type) {
-            case DISTRIBUTION_CARDS: {
-                int i;
-                for (i = 0; i < DECK_SIZE ; i++) {
-                    if (my_player.hand[i] == -1) {
-                        break;
-                    }
-                    //TODO a changer
-                    printf("Voici mes cartes: %d \n",my_player.hand[i]);
-                }
-                continue;
-            }
-
             case END_GAME: {
                 printf("Jeu terminé.");
                 break;
             }
+            case DISTRIBUTION_CARDS: {
+                print_cards();
+                send_card();
+            }
+
             default:
                 break;
         }
@@ -124,8 +118,31 @@ void send_message(int code){
 Message read_message(int sd){
     Message val;
     if(recv(sd, &val, sizeof(val), 0) <= 0){
-        /* TODO : Erreur ou déconnexion ??? Je sais pas */
+
     }
     return val;
+}
+
+void print_cards(){
+    int i;
+    printf("Voici vos cartes: \n\t");
+    for (i = 0; i < DECK_SIZE ; i++) {
+        if (my_player.hand[i] == -1) {
+            break;
+        }
+        printf("|%d -> ", i+1);
+        print_card(my_player.hand[i]);
+        printf("\t");
+        if (i % 5 == 0 && i !=0 ) {
+            printf("\n\t");
+        }
+    }
+    printf("\n");
+}
+
+void send_card(){
+    int card;
+    printf("Veuillez choisir votre carte SVP\n");
+
 }
 

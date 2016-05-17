@@ -24,6 +24,7 @@ void argument_check(int argc, char ** argv);
 void ask_pseudo();
 void send_message(int code);
 Message read_message(int sd);
+void send_card();
 
 /*
  * Stockage des affichages du client

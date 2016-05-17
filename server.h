@@ -12,7 +12,7 @@
  * timer in seconds.
  */
 
-#define REGISTRATION_TIMER 10
+#define REGISTRATION_TIMER 3
 
 /*
  * Status of our registration timer
