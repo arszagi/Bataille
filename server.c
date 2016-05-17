@@ -15,7 +15,6 @@
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/select.h>
 #include <pwd.h>
 #include <sys/fcntl.h>
 #include "utils.h"
@@ -51,6 +50,8 @@ int main(int argc, char ** argv){
     /* Crée le fichier de lock qui empêche de lançer le logiciel plusieurs fois (entre autres) */
     set_lock();
 
+    /* Active la gestion de signal */
+    register_signal_handlers();
 
     /* Nous avons un socket par joueur, il nous faut donc MAX_PLAYERS sockets d'ouverts ! */
     int client_socket[MAX_PLAYERS];
@@ -114,34 +115,31 @@ int main(int argc, char ** argv){
 
             Message message = read_message(temp_sd);
 
+            /* Annuler si le jeu a deja commence*/
             if(game_server.phase != REGISTRATION){
-                // TODO : Manage the registration
-            }
-            if(message.type != REGISTER) {
-                // TODO : Renvoyer une erreur
+                cancel_game(temp_sd);
                 continue;
             }
 
             /* On enregistre notre nouvel user */
-            for(i = 0; i < MAX_PLAYERS; i++){
-                if(game_server.players[i].socket != 0){
-                    continue;
+            if(message.type == REGISTER) {
+                for(i = 0; i < MAX_PLAYERS; i++){
+                    if(game_server.players[i].socket != 0){
+                        continue;
+                    }
+                    game_server.players[i].socket = temp_sd;
+                    printf("Joueur : %s inscrit. \n", message.payload.name);
+                    Message ret;
+                    ret.type = INSCRIPTION_STATUS;
+                    ret.payload.number = 1;
+                    send(temp_sd, &ret, sizeof(ret), 0);
+                    // TODO : Ajouter une ligne de log
+                    break;
                 }
-                game_server.players[i].socket = temp_sd;
-                fprintf(stderr, "Joueur : %s inscrit.", message.payload.name);
-                Message ret;
-                ret.type = INSCRIPTION_STATUS;
-                ret.payload.number = 1;
-                send(temp_sd, &ret, sizeof(ret), 0);
-                // TODO : Ajouter une ligne de log
-                break;
             }
 
-            /* Le jeu a déjà commencé ou on a atteint MAX_PLAYERS */
-            Message ret;
-            ret.type = INSCRIPTION_STATUS;
-            ret.payload.number = 0;
-            send(temp_sd, &ret, sizeof(ret), 0);
+            /* Si on a atteint MAX_PLAYERS */
+            cancel_game(temp_sd);
 
             /* On ajoute ce nouveau socket à la table des sockets */
             for(i = 0; i < MAX_PLAYERS; i++){
@@ -258,7 +256,7 @@ void set_lock(){
     sprintf(lock_file,"%s/bataille.lock", home_dir);
 
     /* Vérifie que le fichier est accessible */
-    if( access(lock_file, F_OK)==0 ) {
+    if( access(lock_file, F_OK) == 0 ) {
         /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
@@ -304,6 +302,7 @@ int enough_players() {
 void start_game() {
     /* On change la phase de jeu */
     game_server.phase = PLAY;
+    send_cards();
 
     /* TODO : Mettre le reste de la magie */
 }
@@ -325,4 +324,35 @@ void shared_memory_reset() {
         shared_memory_ptr->players[i] = user;
     }
     semaphore_up(SEMAPHORE_ACCESS);
+}
+
+void send_cards(){
+    int * deck = fill_deck();
+    int dist_card = DECK_SIZE / game_server.player_count;
+    int i, j, ptr = 0;
+    Message hand;
+
+    for (i = 0; i < game_server.player_count ; i++ ) {
+        for (j = 0; j < dist_card; j++) {
+            game_server.players[i].hand[j] = deck[ptr];
+            ptr++;
+        }
+        for (j; j < DECK_SIZE; j++) {
+            game_server.players[i].hand[j] = NO_CARD;
+        }
+        hand.type = DISTRIBUTION_CARDS;
+        //hand.payload.hand = game_server.players[i].hand;
+        memcpy(hand.payload.hand, game_server.players[i].hand, DECK_SIZE * sizeof(int));
+        if (send(game_server.players[i].socket, &hand, sizeof(hand),0) <= 0) {
+            // TODO : log
+        }
+    }
+
+}
+/* Annulation de la partie */
+void cancel_game(int sd) {
+    Message ret;
+    ret.type = INSCRIPTION_STATUS;
+    ret.payload.number = 0;
+    send(sd, &ret, sizeof(ret), 0);
 }

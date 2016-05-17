@@ -12,7 +12,7 @@
  * timer in seconds.
  */
 
-#define REGISTRATION_TIMER 30
+#define REGISTRATION_TIMER 10
 
 /*
  * Status of our registration timer
@@ -32,5 +32,7 @@ int remove_lock();
 int enough_players();
 void start_game();
 void shared_memory_reset();
+void send_cards();
+void cancel_game(int sd);
 
 #endif //BATAILLE_SERVER_H

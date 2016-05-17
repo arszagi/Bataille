@@ -29,8 +29,11 @@ Message read_message(int sd);
  * Stockage des affichages du client
  */
 
-char * welcome = "--- C'est l'heure de Bataille --- \n"
-        "Bienvenue dans notre jeu de Bataille !\n"
+char * welcome =
+        "********************************* \n"
+        "*** C'est l'heure de Bataille *** \n"
+        "********************************* \n\n"
+        "BIENVENUE !!!\n\n"
         "Quel est ton nom ?\n"
         "Nom [7 caractères maximum]: \n";
 

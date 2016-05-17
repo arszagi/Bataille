@@ -71,7 +71,7 @@ int connect_server(int port_number){
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if(connect(socket_descriptor, (struct sockaddr *) &sin, sizeof(struct sockaddr)) == -1){
-        // TODO : Error management
+        printf("Echec de l'inscription. Le serveur ne répond pas.\n");
         exit(EXIT_FAILURE);
     }
 
