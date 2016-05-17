@@ -33,5 +33,6 @@ int enough_players();
 void start_game();
 void shared_memory_reset();
 void send_cards();
+void cancel_game(int sd);
 
 #endif //BATAILLE_SERVER_H

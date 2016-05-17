@@ -19,8 +19,6 @@ struct reader_memory *reader_memory_ptr;
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 int main(int argc, char ** argv){
     argument_check(argc, argv);
-
-    fprintf(stdout, welcome, sizeof(welcome));
     ask_pseudo();
 
     /* On prépare les sockets */
@@ -32,9 +30,10 @@ int main(int argc, char ** argv){
     validation = read_message(server_socket);
     if (validation.type == INSCRIPTION_STATUS){
         if (validation.payload.number == TRUE) {
-            fprintf(stdout, "Inscription réussie. Veuillez patientiez, le jeu va bientôt commancer.");
+            printf("Inscription réussie. Veuillez patientiez, le jeu va bientôt commencer.\n");
         } else if (validation.payload.number == FALSE) {
-            fprintf(stdout, "Echec d'inscription." );
+            printf("Echec d'inscription.\n" );
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -54,10 +53,16 @@ int main(int argc, char ** argv){
         switch (message.type) {
             case DISTRIBUTION_CARDS: {
                 int i;
-                for (i = 0; i < 26 ; i++) {
-                    printf("Voici mes cartes: %d",my_player.hand[i]);
+                for (i = 0; i < DECK_SIZE ; i++) {
+                    if (my_player.hand[i] == -1) {
+                        break;
+                    }
+                    //TODO a changer
+                    printf("Voici mes cartes: %d \n",my_player.hand[i]);
                 }
+                continue;
             }
+
             case END_GAME: {
                 printf("Jeu terminé.");
                 break;

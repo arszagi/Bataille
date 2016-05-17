@@ -13,6 +13,7 @@
 
 int deck[DECK_SIZE];
 
+/*Remplit le tableau avec des cartes et le melange ensuite.*/
 int * fill_deck() {
     int i, j, n = DECK_SIZE;
     for (i = 0; i < DECK_SIZE ; i++) {

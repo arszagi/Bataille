@@ -115,34 +115,31 @@ int main(int argc, char ** argv){
 
             Message message = read_message(temp_sd);
 
+            /* Annuler si le jeu a deja commence*/
             if(game_server.phase != REGISTRATION){
-                // TODO : Manage the registration
-            }
-            if(message.type != REGISTER) {
-                // TODO : Renvoyer une erreur
+                cancel_game(temp_sd);
                 continue;
             }
 
             /* On enregistre notre nouvel user */
-            for(i = 0; i < MAX_PLAYERS; i++){
-                if(game_server.players[i].socket != 0){
-                    continue;
+            if(message.type == REGISTER) {
+                for(i = 0; i < MAX_PLAYERS; i++){
+                    if(game_server.players[i].socket != 0){
+                        continue;
+                    }
+                    game_server.players[i].socket = temp_sd;
+                    printf("Joueur : %s inscrit. \n", message.payload.name);
+                    Message ret;
+                    ret.type = INSCRIPTION_STATUS;
+                    ret.payload.number = 1;
+                    send(temp_sd, &ret, sizeof(ret), 0);
+                    // TODO : Ajouter une ligne de log
+                    break;
                 }
-                game_server.players[i].socket = temp_sd;
-                fprintf(stderr, "Joueur : %s inscrit.", message.payload.name);
-                Message ret;
-                ret.type = INSCRIPTION_STATUS;
-                ret.payload.number = 1;
-                send(temp_sd, &ret, sizeof(ret), 0);
-                // TODO : Ajouter une ligne de log
-                break;
             }
 
-            /* Le jeu a déjà commencé ou on a atteint MAX_PLAYERS */
-            Message ret;
-            ret.type = INSCRIPTION_STATUS;
-            ret.payload.number = 0;
-            send(temp_sd, &ret, sizeof(ret), 0);
+            /* Si on a atteint MAX_PLAYERS */
+            cancel_game(temp_sd);
 
             /* On ajoute ce nouveau socket à la table des sockets */
             for(i = 0; i < MAX_PLAYERS; i++){
@@ -351,4 +348,11 @@ void send_cards(){
         }
     }
 
+}
+/* Annulation de la partie */
+void cancel_game(int sd) {
+    Message ret;
+    ret.type = INSCRIPTION_STATUS;
+    ret.payload.number = 0;
+    send(sd, &ret, sizeof(ret), 0);
 }
