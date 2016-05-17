@@ -17,9 +17,7 @@ void print_card(int card) {
 
 
     switch(value) {
-        case AS:
-            printf("%s %d%s %s",color_code(color), value + 1, get_symbol(value), "\033[0m");
-            break;
+        case 0:
         case 1:
         case 2:
         case 3:
@@ -28,8 +26,7 @@ void print_card(int card) {
         case 6:
         case 7:
         case 8:
-        case 9:
-            printf("%s %d%s %s", color_code(color), value + 1, get_symbol(symbols), "\033[0m");
+            printf("%s %d%s %s",color_code(color), value + 2, get_symbol(symbols), "\033[0m");
             break;
         case JACK:
             printf("%s %c%s %s", color_code(color), 'J', get_symbol(symbols), "\033[0m");
@@ -39,6 +36,9 @@ void print_card(int card) {
             break;
         case KING:
             printf("%s %c%s %s", color_code(color), 'K', get_symbol(symbols), "\033[0m");
+            break;
+        case AS:
+            printf("%s %d%s %s",color_code(color), 1, get_symbol(symbols), "\033[0m");
             break;
     }
 }
@@ -54,12 +54,12 @@ char * color_code(int color) {
 char * get_symbol(int symbol){
     switch(symbol) {
         case HEART:
-            return "♥";
+            return HEART_SYMBOL;
         case DIAMOND:
-            return "♦";
+            return DIAMOND_SYMBOL;
         case CLUB:
-            return "♣";
+            return CLUB_SYMBOL;
         case SPADE:
-            return "♠";
+            return SPADE_SYMBOL;
     }
 }

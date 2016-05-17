@@ -15,6 +15,7 @@ Player my_player;
 int server_socket;
 Scoreboard *shared_memory_ptr;
 struct reader_memory *reader_memory_ptr;
+int number_cards;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -25,7 +26,7 @@ int main(int argc, char ** argv){
     /* On prépare les sockets */
     int port = atoi(argv[1]);
     server_socket = connect_server(port);
-    send_message(REGISTER);
+    send_message(REGISTER, -1);
     Message validation;
 
     validation = read_message(server_socket);
@@ -59,6 +60,11 @@ int main(int argc, char ** argv){
             case DISTRIBUTION_CARDS: {
                 print_cards();
                 send_card();
+            }
+
+            case RETURN_WIN_CARDS: {
+                //TODO
+                print_cards();
             }
 
             default:
@@ -100,12 +106,18 @@ void ask_pseudo(){
     }
 }
 
-void send_message(int code){
+void send_message(int code, int card){
     Message message;
+    message.type = code;
+
     switch(code){
         case REGISTER: {
-            message.type = REGISTER;
             snprintf(message.payload.name, sizeof(message.payload.name), "%s", my_player.name);
+            send(server_socket, &message, sizeof(message), 0);
+            break;
+        }
+        case SEND_CARD: {
+            message.payload.number = card;
             send(server_socket, &message, sizeof(message), 0);
             break;
         }
@@ -125,11 +137,13 @@ Message read_message(int sd){
 
 void print_cards(){
     int i;
+    number_cards = 0;
     printf("Voici vos cartes: \n\t");
     for (i = 0; i < DECK_SIZE ; i++) {
         if (my_player.hand[i] == -1) {
             break;
         }
+        number_cards++;
         printf("|%d -> ", i+1);
         print_card(my_player.hand[i]);
         printf("\t");
@@ -139,10 +153,30 @@ void print_cards(){
     }
     printf("\n");
 }
-
+/* envoie une carte au choix de la main */
 void send_card(){
-    int card;
-    printf("Veuillez choisir votre carte SVP\n");
+    int card = 0;
+    char line[4];
+    printf("Veuillez choisir le numéro qui corespond à votre carte SVP\n");
+    while ( (fgets(line, 4, stdin )) != NULL ) {
+        card = atoi(line);
+        if (card == 0){
+            printf("Sont autorisé que des chiffres, recommencez!");
+        } else {
+            break;
+        }
+    }
+    remove_card(card-1);
+    send_message(SEND_CARD, my_player.hand[card-1]);
+}
+
+/* enleve la carte de la main*/
+void remove_card(int card) {
+
+    my_player.hand[card] = my_player.hand[number_cards-1];
+    my_player.hand[number_cards-1] = -1;
+    number_cards--;
 
 }
+
 
