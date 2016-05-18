@@ -52,13 +52,13 @@ int main(int argc, char ** argv){
 
     while (TRUE) {
         Message message = read_message(server_socket);
-        memcpy(my_player.hand,message.payload.hand,DECK_SIZE * sizeof(int));
         switch (message.type) {
             case END_GAME: {
                 printf("Jeu terminé.");
                 break;
             }
             case DISTRIBUTION_CARDS: {
+                memcpy(my_player.hand,message.payload.hand,DECK_SIZE * sizeof(int));
                 print_cards();
                 send_card();
                 break;
@@ -67,11 +67,13 @@ int main(int argc, char ** argv){
             case RETURN_WIN_CARDS: {
                 catch_win_cards(message);
                 print_cards();
+                send_card();
                 break;
             }
             case LOST_ROUND: {
                 lost_round(message);
                 print_cards();
+                send_card();
                 break;
             }
 
@@ -152,7 +154,11 @@ void print_cards(){
             break;
         }
         number_cards++;
-        printf("|%d -> ", i+1);
+        if (i < 9) {
+            printf("| %d ", i + 1);
+        } else {
+            printf("|%d ", i + 1);
+        }
         print_card(my_player.hand[i]);
         printf("\t");
         if (i % 5 == 0 && i !=0 ) {
@@ -161,9 +167,10 @@ void print_cards(){
     }
     printf("\n");
 }
+
 /* envoie une carte au choix de la main */
 void send_card(){
-    int card = 0;
+    int i, card = 0;
     char line[4];
     printf("Veuillez choisir le numéro qui corespond à votre carte SVP\n");
     while ( (fgets(line, 4, stdin )) != NULL ) {
@@ -174,9 +181,22 @@ void send_card(){
             break;
         }
     }
-    printf("la carte envoyé est: %d\n", my_player.hand[card-1]);
-    send_message(SEND_CARD, my_player.hand[card-1]);
-    remove_card(card-1);
+    if (number_cards == 1){
+        if (number_win_cards == 0) {
+            send_message(LAST_CARD, my_player.hand[card-1]);
+            remove_card(card-1);
+        }else if (number_win_cards > 0){
+            send_message(SEND_CARD, my_player.hand[card-1]);
+            remove_card(card-1);
+            for (i = 0; i < number_win_cards; i++){
+                my_player.hand[i] = my_player.hand_win_cards[i];
+            }
+            number_win_cards = 0;
+        }
+    } else {
+        send_message(SEND_CARD, my_player.hand[card-1]);
+        remove_card(card-1);
+    }
 }
 
 /* enleve la carte de la main*/
@@ -190,26 +210,29 @@ void remove_card(int card) {
 
 void catch_win_cards(Message win_card) {
     int i;
-
-    printf("Vous avez remporté cette bataille.\n");
-    printf("Vos cartes ganées: \n\t");
+    printf("\n*****************************************\n");
+    printf("** Vous avez remporté cette bataille. ***\n");
+    printf("*****************************************\n");
+    printf("Vos cartes ganées: \t");
     for (i = 0; i < MAX_PLAYERS; i++ ) {
         if (win_card.payload.hand[i] == NO_CARD){
             break;
         }
-
+        my_player.hand_win_cards[number_win_cards] = win_card.payload.hand[i];
         number_win_cards++;
         print_card(win_card.payload.hand[i]);
         printf("\t");
     }
-    printf("\n");
+    printf(LINE);
 
 }
 
 void lost_round(Message lost_message) {
     int i;
-    printf("Vous n'avez pas remporté cette bataille.\n");
-    printf("Carte gagné par l'adversaire: \n\t");
+    printf("\n************************************************\n");
+    printf("*** Vous n'avez pas remporté cette bataille. ***\n");
+    printf("************************************************\n");
+    printf("Cartes gagnées par l'adversaire: \t");
     for (i = 0; i < MAX_PLAYERS; i++ ) {
         if (lost_message.payload.hand[i] == NO_CARD){
             break;
@@ -217,6 +240,6 @@ void lost_round(Message lost_message) {
         print_card(lost_message.payload.hand[i]);
         printf("\t");
     }
-    printf("\n");
+    printf(LINE);
 }
 
