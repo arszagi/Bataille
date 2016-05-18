@@ -34,6 +34,7 @@ int shared_memory;
 Scoreboard *shared_memory_ptr;
 int reader_memory;
 struct reader_memory *reader_memory_ptr;
+int rounds = ROUNDS;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -210,11 +211,20 @@ int main(int argc, char ** argv){
                         }
                         break;
                     }
-                    case SEND_CARD: {
+                    case SEND_CARD:
+                    case LAST_CARD:{
+                        if (message.type == LAST_CARD){
+                            Message end_round;
+                            end_round.type = END_ROUND;
+                            for (i = 0; i < game_server.player_count; i++) {
+                                send(game_server.players[i].socket, &end_round, sizeof(Message), 0);
+                            }
+                        }
                         printf("Carte recu (%d) du socket: %d\n", message.payload.number, temp_sd);
                         if (game_server.phase != PLAY) {
                             break;
                         }
+
                         game_server.working_memory[i] = message.payload.number;
                         game_server.played += 1;
                         /* On vérifie que tout les joueurs ait joué
@@ -232,17 +242,19 @@ int main(int argc, char ** argv){
                         }
                         break;
                     }
-                    case LAST_CARD: {
-                        Message end_round;
-                        end_round.type = END_ROUND;
-                        for (i = 0; i < game_server.player_count; i++) {
-                            send(game_server.players[i].socket, &end_round, sizeof(Message), 0);
-                        }
-                        /* TODO : Ajouter une ligne de log : Fin de manche */
-                        break;
-                    }
+
                     case SEND_SCORE: {
                         update_score(temp_sd, message.payload.number);
+                        rounds--;
+                        if (rounds == 0) {
+                            Message end_game;
+                            end_game.type = END_GAME;
+                            for (i = 0; i < game_server.player_count; i++) {
+                                send(game_server.players[i].socket, &end_game, sizeof(Message), 0);
+                            }
+                            break;
+                        }
+                        start_game();
                         break;
                     }
 
@@ -472,7 +484,8 @@ void play_round() {
 
 void update_score(int socket, int score) {
     semaphore_down(SEMAPHORE_ACCESS);
-    for(int i = 0; i < game_server.player_count; i++){
+    int i;
+    for(i = 0; i < game_server.player_count; i++){
         if(shared_memory_ptr->players[i].socket == socket){
             shared_memory_ptr->players[i].score += score;
             break;

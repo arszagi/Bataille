@@ -17,6 +17,7 @@ Scoreboard *shared_memory_ptr;
 struct reader_memory *reader_memory_ptr;
 int number_cards;
 int number_win_cards;
+int last_round = FALSE;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -54,10 +55,11 @@ int main(int argc, char ** argv){
         Message message = read_message(server_socket);
         switch (message.type) {
             case END_GAME: {
-                printf("Jeu terminé.");
+                end_game();
                 break;
             }
             case DISTRIBUTION_CARDS: {
+                last_round = FALSE;
                 memcpy(my_player.hand,message.payload.hand,DECK_SIZE * sizeof(int));
                 print_cards();
                 send_card();
@@ -66,14 +68,25 @@ int main(int argc, char ** argv){
 
             case RETURN_WIN_CARDS: {
                 catch_win_cards(message);
+                if (last_round == TRUE){
+                    break;
+                }
                 print_cards();
                 send_card();
                 break;
             }
             case LOST_ROUND: {
                 lost_round(message);
+                if (last_round == TRUE){
+                    break;
+                }
                 print_cards();
                 send_card();
+                break;
+            }
+            case END_ROUND: {
+                last_round = TRUE;
+                printf("End round\n");
                 break;
             }
 
@@ -116,7 +129,7 @@ void ask_pseudo(){
     }
 }
 
-void send_message(int code, int card){
+void send_message(int code, int number){
     Message message;
     message.type = code;
 
@@ -127,9 +140,22 @@ void send_message(int code, int card){
             break;
         }
         case SEND_CARD: {
-            message.payload.number = card;
+            message.payload.number = number;
             send(server_socket, &message, sizeof(message), 0);
             break;
+        }
+        case LAST_CARD: {
+            message.payload.number = number;
+            send(server_socket, &message, sizeof(message), 0);
+            break;
+        }
+        case SEND_SCORE: {
+            message.payload.number = number;
+            send(server_socket, &message, sizeof(message), 0);
+            break;
+        }
+        case END_GAME: {
+
         }
         default: {
             break;
@@ -177,6 +203,9 @@ void send_card(){
         card = atoi(line);
         if (card == 0){
             printf("Sont autorisé que des chiffres, recommencez!");
+        }
+        if (card > number_cards) {
+            printf("Vous avez choisis une carte qui existe pas dans le tas, recommencez!");
         } else {
             break;
         }
@@ -210,6 +239,7 @@ void remove_card(int card) {
 
 void catch_win_cards(Message win_card) {
     int i;
+
     printf("\n*****************************************\n");
     printf("** Vous avez remporté cette bataille. ***\n");
     printf("*****************************************\n");
@@ -224,6 +254,10 @@ void catch_win_cards(Message win_card) {
         printf("\t");
     }
     printf(LINE);
+    if (last_round == TRUE) {
+        send_score();
+    }
+
 
 }
 
@@ -241,5 +275,32 @@ void lost_round(Message lost_message) {
         printf("\t");
     }
     printf(LINE);
+    if (last_round == TRUE) {
+        send_score();
+    }
+}
+
+
+void send_score() {
+    int score, i;
+    score = compute_score(my_player.hand);
+    score += compute_score(my_player.hand_win_cards);
+    for (i = 0; i < DECK_SIZE; i++){
+        my_player.hand[i] = NO_CARD;
+        my_player.hand_win_cards[i] = NO_CARD;
+    }
+    send_message(SEND_SCORE, score);
+}
+
+void end_game(){
+
+    semaphore_down(SEMAPHORE_ACCESS);
+    if(shared_memory_ptr->players->name == my_player.name){
+        printf("Votre score est: %d\n", shared_memory_ptr->players->score);
+    }
+    semaphore_up(SEMAPHORE_ACCESS);
+
+    exit(EXIT_SUCCESS);
+
 }
 

@@ -26,7 +26,7 @@
 /*
  * Temps avant lancement de la partie entre deux inscriptions (en seconde)
  */
-#define WAITING_TIME 3
+#define WAITING_TIME 6
 
 /*
  * Carte non définie

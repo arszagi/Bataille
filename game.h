@@ -9,8 +9,9 @@
 #define BATAILLE_GAME_H
 
 #define NAME_SIZE 8
-#define DECK_SIZE 52
+#define DECK_SIZE 4
 #define NO_CARD -1
+#define ROUNDS 5
 
 #include "constants.h"
 #include "shared_memory.h"

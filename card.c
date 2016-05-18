@@ -71,6 +71,9 @@ int compute_score(int * deck) {
     int i;
     int score = 0;
     for(i = 0; i < DECK_SIZE; i++){
+        if (deck[i] == NO_CARD) {
+            break;
+        }
         switch(deck[i]) {
             case 48:
             case 49:
