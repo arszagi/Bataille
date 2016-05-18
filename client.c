@@ -16,6 +16,7 @@ int server_socket;
 Scoreboard *shared_memory_ptr;
 struct reader_memory *reader_memory_ptr;
 int number_cards;
+int number_win_cards;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
@@ -60,11 +61,18 @@ int main(int argc, char ** argv){
             case DISTRIBUTION_CARDS: {
                 print_cards();
                 send_card();
+                break;
             }
 
             case RETURN_WIN_CARDS: {
-                //TODO
+                catch_win_cards(message);
                 print_cards();
+                break;
+            }
+            case LOST_ROUND: {
+                lost_round(message);
+                print_cards();
+                break;
             }
 
             default:
@@ -166,17 +174,49 @@ void send_card(){
             break;
         }
     }
-    remove_card(card-1);
+    printf("la carte envoyé est: %d\n", my_player.hand[card-1]);
     send_message(SEND_CARD, my_player.hand[card-1]);
+    remove_card(card-1);
 }
 
 /* enleve la carte de la main*/
 void remove_card(int card) {
 
     my_player.hand[card] = my_player.hand[number_cards-1];
-    my_player.hand[number_cards-1] = -1;
+    my_player.hand[number_cards-1] = NO_CARD;
     number_cards--;
 
 }
 
+void catch_win_cards(Message win_card) {
+    int i;
+
+    printf("Vous avez remporté cette bataille.\n");
+    printf("Vos cartes ganées: \n\t");
+    for (i = 0; i < MAX_PLAYERS; i++ ) {
+        if (win_card.payload.hand[i] == NO_CARD){
+            break;
+        }
+
+        number_win_cards++;
+        print_card(win_card.payload.hand[i]);
+        printf("\t");
+    }
+    printf("\n");
+
+}
+
+void lost_round(Message lost_message) {
+    int i;
+    printf("Vous n'avez pas remporté cette bataille.\n");
+    printf("Carte gagné par l'adversaire: \n\t");
+    for (i = 0; i < MAX_PLAYERS; i++ ) {
+        if (lost_message.payload.hand[i] == NO_CARD){
+            break;
+        }
+        print_card(lost_message.payload.hand[i]);
+        printf("\t");
+    }
+    printf("\n");
+}
 

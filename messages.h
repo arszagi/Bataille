@@ -18,8 +18,9 @@
 #define RETURN_WIN_CARDS 5
 #define LAST_CARD 6 // derniere carte de la manche
 #define END_ROUND 7
-#define SEND_SCORE 8
-#define END_GAME 9 // fin de la partie (serveur)
+#define END_GAME 8 // fin de la partie (serveur)
+#define SEND_SCORE 9
+#define LOST_ROUND 10
 
 
 typedef struct Message Message;

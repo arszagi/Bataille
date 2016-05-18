@@ -7,12 +7,6 @@
 
 #include "messages.h"
 
-/*
- * The registration timer between two registration if registrants >= 2
- * timer in seconds.
- */
-
-#define REGISTRATION_TIMER 3
 
 /*
  * Status of our registration timer
