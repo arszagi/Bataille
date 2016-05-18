@@ -28,6 +28,8 @@ void send_card();
 void remove_card(int card);
 void catch_win_cards(Message win_card);
 void lost_round(Message lost_message);
+void sig_end_handler(int signal_number);
+void register_signal_handlers();
 
 /*
  * Stockage des affichages du client

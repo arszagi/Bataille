@@ -205,10 +205,19 @@ int main(int argc, char ** argv){
                     case DISCONNECT: {
                         for(i = 0; i < game_server.player_count; i++) {
                             if(game_server.players[i].socket == temp_sd){
-                                game_server.players[i] = game_server.players[game_server.player_count];
+                                game_server.players[i] = game_server.players[game_server.player_count - 1];
                                 game_server.player_count--;
+                                break;
                             }
                         }
+                        if(!enough_players()) {
+                            Message winner;
+                            winner.type = IS_WINNER;
+                            send(game_server.players[0].socket, &winner, sizeof(Message), 0);
+                            exit(EXIT_SUCCESS);
+                        }
+                        /* TODO : Ajouter une ligne de log */
+                        printf("Déconnexion avec succes du jouer au socket : %d \n", temp_sd);
                         break;
                     }
                     case SEND_CARD: {
@@ -283,6 +292,12 @@ void register_signal_handlers() {
 
     // Timer alarm
     if (signal(SIGALRM, alarm_timer_handler) == SIG_ERR) {
+        int i;
+        Message cancel;
+        cancel.type = CANCEL;
+        for(i = 0; i < game_server.player_count; i++) {
+            send(game_server.players[i].socket, &cancel, sizeof(Message), 0);
+        }
         /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
@@ -357,15 +372,7 @@ int remove_lock() {
  * Vérifie que nous avons au moins deux joueurs
  */
 int enough_players() {
-    int i;
-    int count = 0;
-    for(i = 0; i < MAX_PLAYERS; i++){
-        if(game_server.players[i].socket > 0) {
-            count++;
-        }
-    }
-
-    return count >= MIN_PLAYERS;
+    return game_server.player_count >= MIN_PLAYERS;
 }
 
 void start_game() {
