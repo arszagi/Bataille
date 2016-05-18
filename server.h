@@ -29,5 +29,8 @@ void shared_memory_reset();
 void send_cards();
 void cancel_game(int sd);
 void play_round();
+void update_score(int socket, int score);
+void update_scoreboard_final(Scoreboard * scoreboard);
+int compute_score(int * deck);
 
 #endif //BATAILLE_SERVER_H

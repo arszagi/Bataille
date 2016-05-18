@@ -31,6 +31,7 @@ struct Scoreboard *attach_memory(int shmid);
 
 typedef struct user {
     char name[8];
+    int socket;
     int score;
 } User;
 
