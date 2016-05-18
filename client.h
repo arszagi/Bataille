@@ -17,7 +17,6 @@
 #include "network.h"
 #include "messages.h"
 
-
 #define IP_ADDRESS 127.0.0.1
 
 void argument_check(int argc, char ** argv);

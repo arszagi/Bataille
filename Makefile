@@ -2,12 +2,14 @@ DIR = out
 
 bataille : reset server client
 
-server : server.o game.o shared_memory.o network.o utils.o
-	cc -o $(DIR)/$@ $(DIR)/server.o $(DIR)/game.o $(DIR)/shared_memory.o $(DIR)/network.o $(DIR)/utils.o
+server : server.o game.o shared_memory.o network.o utils.o logger.o
+	cc -o $(DIR)/$@ $(DIR)/server.o $(DIR)/game.o $(DIR)/shared_memory.o $(DIR)/network.o $(DIR)/utils.o $(DIR)/logger.o
 
-client : client.o card.o shared_memory.o network.o utils.o
-	cc -o $(DIR)/$@ $(DIR)/client.o $(DIR)/card.o $(DIR)/shared_memory.o $(DIR)/network.o $(DIR)/utils.o
+client : client.o card.o shared_memory.o network.o utils.o logger.o
+	cc -o $(DIR)/$@ $(DIR)/client.o $(DIR)/card.o $(DIR)/shared_memory.o $(DIR)/network.o $(DIR)/utils.o $(DIR)/logger.o
 
+logger.o : logger.c
+	cc -c logger.c -o $(DIR)/$@
 server.o : server.c
 	cc -c server.c -o $(DIR)/$@
 client.o : client.c

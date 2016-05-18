@@ -25,7 +25,6 @@ typedef enum phase {
 } Phase;
 
 typedef struct player {
-    /* TODO check char * != or === char */
     char name[NAME_SIZE];
     User user;
     int socket;

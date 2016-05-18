@@ -7,7 +7,6 @@
 
 #include "messages.h"
 
-
 /*
  * Status of our registration timer
  */
@@ -32,5 +31,7 @@ void play_round();
 void update_score(int socket, int score);
 void update_scoreboard_final(Scoreboard * scoreboard);
 int compute_score(int * deck);
+void reset_state();
+
 
 #endif //BATAILLE_SERVER_H

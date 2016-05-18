@@ -31,9 +31,12 @@
  */
 #define ARRAY_SIZE 1024
 
+#pragma clang diagnostic ignored "-Wvisibility"
+#pragma clang diagnostic ignored "-Wformat"
 int log_entry(char *message, int level);
-int log_error(char *message, int level, int errno);
+int log_error(char *message, int level, int errno_number);
 int set_log_output(int output_type);
-char* format_entry(struct tm *time_info, int level, char *message, int errno);
+char* format_entry(struct tm *time_info, int level, char *message, int errno_number);
+char *alloc_log();
 
 #endif //BATAILLE_LOGGER_H
