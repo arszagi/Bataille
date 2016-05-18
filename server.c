@@ -12,6 +12,7 @@
 #include <sys/ipc.h>
 #include <sys/socket.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
