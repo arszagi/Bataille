@@ -11,6 +11,7 @@
 #include "game.h"
 
 #define CANCEL 0
+#define DISCONNECT 0
 #define REGISTER 1
 #define INSCRIPTION_STATUS 2 //1 = OK  2 = NOK
 #define DISTRIBUTION_CARDS 3

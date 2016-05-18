@@ -71,6 +71,10 @@ int main(int argc, char ** argv){
     reader_memory_ptr = access_shared_reader_memory(reader_memory);
     reader_memory_ptr->reader_count = 0;
 
+    /*
+     * Initialisation du scoreboard d'un round
+     */
+    Scoreboard round_board;
 
     /*
      * Le serveur ne s'arrête jamais, nous avons donc recours à une boucle infinie
@@ -153,6 +157,7 @@ int main(int argc, char ** argv){
 
             User user = {};
             strncpy(user.name, message.payload.name, NAME_SIZE);
+            user.socket = temp_sd;
             game_server.players[i].user = user;
             game_server.player_count += 1;
 
@@ -196,9 +201,18 @@ int main(int argc, char ** argv){
                 Message message = read_message(temp_sd);
 
                 switch(message.type) {
-                    case SEND_CARD:
+                    case DISCONNECT: {
+                        for(i = 0; i < game_server.player_count; i++) {
+                            if(game_server.players[i].socket == temp_sd){
+                                game_server.players[i] = game_server.players[game_server.player_count];
+                                game_server.player_count--;
+                            }
+                        }
+                        break;
+                    }
+                    case SEND_CARD: {
                         printf("Carte recu (%d) du socket: %d\n", message.payload.number, temp_sd);
-                        if(game_server.phase != PLAY) {
+                        if (game_server.phase != PLAY) {
                             break;
                         }
                         game_server.working_memory[i] = message.payload.number;
@@ -206,17 +220,32 @@ int main(int argc, char ** argv){
                         /* On vérifie que tout les joueurs ait joué
                          * le dernier joueur triggerera le calcul du gagnant et du score
                          */
-                        if(game_server.played < game_server.player_count) {
+                        if (game_server.played < game_server.player_count) {
                             continue;
                         } else {
                             play_round();
                             game_server.played = 0;
                             int reset_walker;
-                            for(reset_walker = 0; reset_walker < game_server.player_count; reset_walker++){
+                            for (reset_walker = 0; reset_walker < game_server.player_count; reset_walker++) {
                                 game_server.working_memory[reset_walker] = -1;
                             }
                         }
                         break;
+                    }
+                    case LAST_CARD: {
+                        Message end_round;
+                        end_round.type = END_ROUND;
+                        for (i = 0; i < game_server.player_count; i++) {
+                            send(game_server.players[i].socket, &end_round, sizeof(Message), 0);
+                        }
+                        /* TODO : Ajouter une ligne de log : Fin de manche */
+                        break;
+                    }
+                    case SEND_SCORE: {
+                        update_score(temp_sd, message.payload.number);
+                        break;
+                    }
+
                 }
             }
         }
@@ -393,7 +422,7 @@ void send_cards(){
 void cancel_game(int sd) {
     Message ret;
     ret.type = INSCRIPTION_STATUS;
-    ret.payload.number = 0;
+    ret.payload.number = FALSE;
     send(sd, &ret, sizeof(ret), 0);
 }
 
@@ -403,7 +432,6 @@ void play_round() {
     for (i = 0; i < MAX_PLAYERS; i++) {
         pool[i] = NO_CARD;
     }
-
     int winner_socket;
     for(i = 0; i < game_server.player_count - 1; i++){
         if(game_server.working_memory[i] > game_server.working_memory[i+1]) {
@@ -420,6 +448,7 @@ void play_round() {
     Message winner;
     winner.type = 5;
     memcpy(winner.payload.hand, pool, MAX_PLAYERS * sizeof(int));
+
 
     /* display */
     printf("%d %d %d \n",winner_socket, winner.payload.hand[0], winner.payload.hand[1]);
@@ -438,5 +467,17 @@ void play_round() {
         }
         send(game_server.players[i].socket, &looser, sizeof(Message), 0);
     }
+
+}
+
+void update_score(int socket, int score) {
+    semaphore_down(SEMAPHORE_ACCESS);
+    for(int i = 0; i < game_server.player_count; i++){
+        if(shared_memory_ptr->players[i].socket == socket){
+            shared_memory_ptr->players[i].score += score;
+            break;
+        }
+    }
+    semaphore_up(SEMAPHORE_ACCESS);
 
 }

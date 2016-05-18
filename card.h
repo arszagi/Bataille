@@ -34,4 +34,5 @@ char * color_code(int color);
 
 char * get_symbol(int symbol);
 
+int compute_score(int * deck);
 #endif //BATAILLE_CARD_H

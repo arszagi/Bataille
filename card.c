@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include "card.h"
+#include "game.h"
 
 
 void print_card(int card) {
@@ -43,6 +44,7 @@ void print_card(int card) {
     }
 }
 
+#pragma clang diagnostic ignored "-Wreturn-type"
 char * color_code(int color) {
     if(color == RED) {
         return "\033[0;31;47m";
@@ -51,6 +53,7 @@ char * color_code(int color) {
     }
 }
 
+#pragma clang diagnostic ignored "-Wreturn-type"
 char * get_symbol(int symbol){
     switch(symbol) {
         case HEART:
@@ -62,4 +65,22 @@ char * get_symbol(int symbol){
         case SPADE:
             return SPADE_SYMBOL;
     }
+}
+
+int compute_score(int * deck) {
+    int i;
+    int score = 0;
+    for(i = 0; i < DECK_SIZE; i++){
+        switch(deck[i]) {
+            case 48:
+            case 49:
+            case 50:
+            case 51:
+                score += 1;
+                break;
+            default:
+                score += deck[i] + 2;
+        }
+    }
+    return score;
 }
