@@ -167,27 +167,23 @@ int main(int argc, char ** argv){
              * On réinitialise la mémoire partagée.
              */
             if(timer_status == TIMER_OFF) {
+                /* TODO : Ajouter une ligne de log. */
                 shared_memory_reset();
+                alarm(WAITING_TIME);
+                timer_status = TIMER_ON;
+            }else if(timer_status == TIMER_ON) {
+                alarm(WAITING_TIME);
             }
 
             semaphore_down(SEMAPHORE_ACCESS);
             shared_memory_ptr->players[i] = user;
             semaphore_up(SEMAPHORE_ACCESS);
 
-            /* TODO : Ajouter une ligne de log signalant l'inscription du nouveau joueur */
-
-            /*
-             * Si le timer est OFF (Il s'agit du premier inscrit, on lance le timer
-             * Si le timer est fini et que nous avons deux joueurs ou plus, on lance le jeu
-             */
-            if(timer_status == TIMER_OFF) {
-                /* TODO : Ajouter une ligne de log. */
-                alarm(WAITING_TIME);
-                timer_status = TIMER_ON;
-            }else if(timer_status == TIMER_FINISHED && enough_players()) {
+            if(timer_status == TIMER_FINISHED && enough_players()) {
                 /* TODO : Ajouter une ligne de log */
                 start_game();
             }
+
         }
         /*
          * Il s'agit d'un client déjà enregistré
@@ -214,7 +210,7 @@ int main(int argc, char ** argv){
                             Message winner;
                             winner.type = IS_WINNER;
                             send(game_server.players[0].socket, &winner, sizeof(Message), 0);
-                            exit(EXIT_SUCCESS);
+                            raise(SIGTERM);
                         }
                         /* TODO : Ajouter une ligne de log */
                         printf("Déconnexion avec succes du jouer au socket : %d \n", temp_sd);
@@ -292,13 +288,6 @@ void register_signal_handlers() {
 
     // Timer alarm
     if (signal(SIGALRM, alarm_timer_handler) == SIG_ERR) {
-        int i;
-        Message cancel;
-        cancel.type = CANCEL;
-        for(i = 0; i < game_server.player_count; i++) {
-            send(game_server.players[i].socket, &cancel, sizeof(Message), 0);
-        }
-        /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
 }
@@ -385,11 +374,20 @@ void start_game() {
 }
 
 void alarm_timer_handler(int signal_number) {
-    /* TODO : Add a log entry */
+    /* TODO : Error management */
     timer_status = TIMER_FINISHED;
 
     if(enough_players()) {
         start_game();
+    } else {
+        int i;
+        Message cancel;
+        cancel.type = CANCEL;
+        for(i = 0; i < game_server.player_count; i++) {
+            send(game_server.players[i].socket, &cancel, sizeof(Message), 0);
+        }
+        /* TODO : Ajouter une ligne de log */
+        raise(SIGTERM);
     }
 }
 
