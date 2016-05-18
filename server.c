@@ -472,7 +472,8 @@ void play_round() {
 
 void update_score(int socket, int score) {
     semaphore_down(SEMAPHORE_ACCESS);
-    for(int i = 0; i < game_server.player_count; i++){
+    int i;
+    for(i = 0; i < game_server.player_count; i++){
         if(shared_memory_ptr->players[i].socket == socket){
             shared_memory_ptr->players[i].score += score;
             break;
