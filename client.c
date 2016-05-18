@@ -23,6 +23,7 @@ int number_win_cards;
 int main(int argc, char ** argv){
     argument_check(argc, argv);
     ask_pseudo();
+    register_signal_handlers();
 
     /* On prépare les sockets */
     int port = atoi(argv[1]);
@@ -77,6 +78,15 @@ int main(int argc, char ** argv){
                 break;
             }
 
+            case CANCEL: {
+                printf("Le jeu a été annulé par le serveur \n");
+                exit(EXIT_SUCCESS);
+            }
+
+            case IS_WINNER: {
+                printf("Vous avez gagné la partie \n");
+                exit(EXIT_SUCCESS);
+            }
             default:
                 break;
         }
@@ -121,6 +131,10 @@ void send_message(int code, int card){
     message.type = code;
 
     switch(code){
+        case DISCONNECT: {
+            send(server_socket, &message, sizeof(message), 0);
+            break;
+        }
         case REGISTER: {
             snprintf(message.payload.name, sizeof(message.payload.name), "%s", my_player.name);
             send(server_socket, &message, sizeof(message), 0);
@@ -180,6 +194,10 @@ void send_card(){
         } else {
             break;
         }
+    }
+    if(feof(stdin)){
+        send_message(0, 0);
+        printf("Fin de partie demandée via CTRL - D");
     }
     if (number_cards == 1){
         if (number_win_cards == 0) {
@@ -243,3 +261,25 @@ void lost_round(Message lost_message) {
     printf(LINE);
 }
 
+void register_signal_handlers() {
+    // End signal (CTRL+C)
+    if (signal(SIGINT, sig_end_handler) == SIG_ERR) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+
+    // Kill signal
+    if (signal(SIGTERM, sig_end_handler) == SIG_ERR ) {
+        /* TODO : Error management */
+        exit(EXIT_FAILURE);
+    }
+}
+
+/*
+ * Appeler en cas de signal de fin
+ * Libère les ressources IPC, Sémaphores, Lock, Socket, ...
+ */
+void sig_end_handler(int signal_number){
+    send_message(DISCONNECT, 0);
+    exit(EXIT_SUCCESS);
+}

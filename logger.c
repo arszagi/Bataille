@@ -10,6 +10,7 @@
 #include <sys/fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/errno.h>
 #include "logger.h"
 #include "constants.h"
 
@@ -23,7 +24,8 @@ int log_output = WRITE_STDOUT;
  * Permet d'ajouter une entrée dans le log en ajoutant le errno (voir errno.h)
  * vaut -1 si il n'y a pas d'erreur
  */
-int log_error(char *message, int level, int errno) {
+#pragma clang diagnostic ignored "-Wvisibility"
+int log_error(char *message, int level, int errno_number) {
     int output_descriptor = 1;
     char *log_entry;
     char filepath[ARRAY_SIZE];
@@ -91,9 +93,8 @@ int set_log_output(int output_type) {
  * L'application étant client serveur, il nous a semblé intéressant d'imaginer
  * que les logs pourraient être stocké sur un serveur ailleurs et donc de joindre
  * la timezone plutôt que de la calculer.
- * TODO : Discuter avec Kamil de si c'est justifié ou non
  */
-char* format_entry(struct tm *time, int level, char *message, int errno) {
+char* format_entry(struct tm *time, int level, char *message, int errno_number) {
     char *entry;
 
     if((entry = (char *) malloc(ARRAY_SIZE * sizeof(char))) == NULL) {
@@ -121,9 +122,20 @@ char* format_entry(struct tm *time, int level, char *message, int errno) {
                 time->tm_min,
                 time->tm_sec,
                 message,
-                strerror(errno)
+                strerror(errno_number)
         );
     }
 
     return entry;
+}
+
+char *alloc_log()
+{
+    char *log;
+    if ( (log = malloc(ARRAY_SIZE)) == NULL)
+    {
+        log_error("Memory allocation error for log.", LOG_ERROR, errno);
+        exit(EXIT_FAILURE);
+    }
+    return log;
 }

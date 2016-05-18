@@ -33,7 +33,6 @@ void init_semaphore(int is_server) {
     key_t semaphore_key = get_semaphore_token();
     int semaphore_flag = (is_server) ? IPC_CREAT|0666 : 0666;
 
-    /* TODO Replace 1 by a Constant */
     if((semaphore_descriptor = semget(semaphore_key, 2, semaphore_flag)) == -1) {
         /* TODO Error management */
         exit(EXIT_FAILURE);

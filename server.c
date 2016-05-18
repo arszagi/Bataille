@@ -24,11 +24,13 @@
 #include "game.h"
 #include "shared_memory.h"
 #include "server.h"
+#include "logger.h"
 
 
 int server_fd;
 Game game_server;
 int timer_status = TIMER_OFF;
+char ** runtime_argument;
 
 /* Mémoire partagée */
 int shared_memory;
@@ -40,7 +42,7 @@ struct reader_memory *reader_memory_ptr;
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
 #pragma clang diagnostic ignored "-Wunused-value"
 int main(int argc, char ** argv){
-
+    runtime_argument = argv;
     int temp_sd, max_sd, i;
     int sd; // socket descriptor
     int select_result;
@@ -67,7 +69,6 @@ int main(int argc, char ** argv){
     shared_memory = create_shared_memory(TRUE);
     shared_memory_ptr = attach_memory(shared_memory);
     init_semaphore(TRUE);
-        /* TODO : Il faudrait un peu plus d'explications pour être sûr qu'on comprenne bien */
     reader_memory = create_shared_memory(TRUE);
     reader_memory_ptr = access_shared_reader_memory(reader_memory);
     reader_memory_ptr->reader_count = 0;
@@ -105,7 +106,7 @@ int main(int argc, char ** argv){
 
         if(select_result < 0){
             if(errno == EBADF){
-                printf("File descriptor removed!\n");
+                // printf("File descriptor removed!\n");
             }else if(errno == EINTR){
                 printf("Interrupted system call.\n");
             }
@@ -116,7 +117,7 @@ int main(int argc, char ** argv){
         if(FD_ISSET(server_fd, &file_descriptor_set)){
 
             if((temp_sd = accept(server_fd, NULL, 0)) < 0) {
-                // TODO : Error management
+                log_error("Erreur lors de la lecture sur le socket", LOG_ERROR, errno);
                 raise(SIGTERM);
             }
 
@@ -140,7 +141,7 @@ int main(int argc, char ** argv){
                     ret.type = INSCRIPTION_STATUS;
                     ret.payload.number = 1;
                     send(temp_sd, &ret, sizeof(ret), 0);
-                    // TODO : Ajouter une ligne de log
+                    log_entry("Joueur bien inscrit", LOG_INFO);
                     break;
                 }
             }
@@ -167,27 +168,23 @@ int main(int argc, char ** argv){
              * On réinitialise la mémoire partagée.
              */
             if(timer_status == TIMER_OFF) {
+                log_entry("Début du timer", LOG_INFO);
                 shared_memory_reset();
+                alarm(WAITING_TIME);
+                timer_status = TIMER_ON;
+            }else if(timer_status == TIMER_ON) {
+                alarm(WAITING_TIME);
             }
 
             semaphore_down(SEMAPHORE_ACCESS);
             shared_memory_ptr->players[i] = user;
             semaphore_up(SEMAPHORE_ACCESS);
 
-            /* TODO : Ajouter une ligne de log signalant l'inscription du nouveau joueur */
-
-            /*
-             * Si le timer est OFF (Il s'agit du premier inscrit, on lance le timer
-             * Si le timer est fini et que nous avons deux joueurs ou plus, on lance le jeu
-             */
-            if(timer_status == TIMER_OFF) {
-                /* TODO : Ajouter une ligne de log. */
-                alarm(WAITING_TIME);
-                timer_status = TIMER_ON;
-            }else if(timer_status == TIMER_FINISHED && enough_players()) {
-                /* TODO : Ajouter une ligne de log */
+            if(timer_status == TIMER_FINISHED && enough_players()) {
+                log_entry("Fin du timer - Début de partie", LOG_INFO);
                 start_game();
             }
+
         }
         /*
          * Il s'agit d'un client déjà enregistré
@@ -205,14 +202,22 @@ int main(int argc, char ** argv){
                     case DISCONNECT: {
                         for(i = 0; i < game_server.player_count; i++) {
                             if(game_server.players[i].socket == temp_sd){
-                                game_server.players[i] = game_server.players[game_server.player_count];
+                                game_server.players[i] = game_server.players[game_server.player_count - 1];
                                 game_server.player_count--;
+                                break;
                             }
                         }
+                        if(!enough_players()) {
+                            Message winner;
+                            winner.type = IS_WINNER;
+                            send(game_server.players[0].socket, &winner, sizeof(Message), 0);
+                            raise(SIGTERM);
+                        }
+                        log_entry("Déconnexion du joueur avec succès", LOG_INFO);
                         break;
                     }
                     case SEND_CARD: {
-                        printf("Carte recu (%d) du socket: %d\n", message.payload.number, temp_sd);
+                        log_entry("Une carte a été reçue du socket", LOG_DEBUG);
                         if (game_server.phase != PLAY) {
                             break;
                         }
@@ -239,7 +244,7 @@ int main(int argc, char ** argv){
                         for (i = 0; i < game_server.player_count; i++) {
                             send(game_server.players[i].socket, &end_round, sizeof(Message), 0);
                         }
-                        /* TODO : Ajouter une ligne de log : Fin de manche */
+                        log_entry("Fin de la manche", LOG_INFO);
                         break;
                     }
                     case SEND_SCORE: {
@@ -271,7 +276,7 @@ void argument_check(int argc, char ** argv){
 void register_signal_handlers() {
     // End signal (CTRL+C)
     if (signal(SIGINT, sig_end_handler) == SIG_ERR) {
-        /* TODO : Error management */
+        /* TODO Error management */
         exit(EXIT_FAILURE);
     }
 
@@ -283,7 +288,6 @@ void register_signal_handlers() {
 
     // Timer alarm
     if (signal(SIGALRM, alarm_timer_handler) == SIG_ERR) {
-        /* TODO : Error management */
         exit(EXIT_FAILURE);
     }
 }
@@ -310,7 +314,7 @@ void sig_end_handler(int signal_number){
 Message read_message(int sd){
     Message message;
     if(recv(sd, &message, sizeof(message), 0) <= 0){
-        /* TODO : Erreur ou déconnexion ??? Je sais pas */
+        exit(EXIT_FAILURE);
     } else {
 
     }
@@ -357,15 +361,7 @@ int remove_lock() {
  * Vérifie que nous avons au moins deux joueurs
  */
 int enough_players() {
-    int i;
-    int count = 0;
-    for(i = 0; i < MAX_PLAYERS; i++){
-        if(game_server.players[i].socket > 0) {
-            count++;
-        }
-    }
-
-    return count >= MIN_PLAYERS;
+    return game_server.player_count >= MIN_PLAYERS;
 }
 
 void start_game() {
@@ -373,16 +369,23 @@ void start_game() {
     game_server.phase = PLAY;
 
     send_cards();
-
-    /* TODO : Mettre le reste de la magie */
 }
 
 void alarm_timer_handler(int signal_number) {
-    /* TODO : Add a log entry */
+    /* TODO : Error management */
     timer_status = TIMER_FINISHED;
 
     if(enough_players()) {
         start_game();
+    } else {
+        int i;
+        Message cancel;
+        cancel.type = CANCEL;
+        for(i = 0; i < game_server.player_count; i++) {
+            send(game_server.players[i].socket, &cancel, sizeof(Message), 0);
+        }
+        /* TODO : Ajouter une ligne de log */
+        reset_state();
     }
 }
 
@@ -440,7 +443,6 @@ void play_round() {
         }else {
             winner_socket = game_server.players[i + 1].socket;
         }
-        /* TODO : Optimize */
         pool[i] = game_server.working_memory[i];
         pool[i + 1] = game_server.working_memory[i+1];
     }
@@ -482,4 +484,26 @@ void update_score(int socket, int score) {
     }
     semaphore_up(SEMAPHORE_ACCESS);
 
+}
+
+
+void reset_state(){
+    // Using a little trick
+    /*
+    shmdt(shared_memory_ptr);
+    shmctl(shared_memory, IPC_RMID, NULL);
+
+    shmdt(reader_memory_ptr);
+    shmctl(reader_memory, IPC_RMID, NULL);
+
+    // TODO : Signaler que l'effacement de la shared memory est un succès
+
+    delete_semaphores();
+    remove_lock();
+    close(server_fd);
+
+    printf("-- State RESET --\n");
+    execv("/proc/self/exe", runtime_argument);
+    */
+    raise(SIGTERM);
 }

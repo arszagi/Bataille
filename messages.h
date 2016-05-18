@@ -22,6 +22,7 @@
 #define END_GAME 8 // fin de la partie (serveur)
 #define SEND_SCORE 9
 #define LOST_ROUND 10
+#define IS_WINNER 42
 
 
 typedef struct Message Message;

@@ -18,7 +18,7 @@
 /*
  * Nombre maximum de joueurs
  */
-#define MAX_PLAYERS 4
+#define MAX_PLAYERS 3
 
 /* Nombre minimum de joueurs */
 #define MIN_PLAYERS 2
