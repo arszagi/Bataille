@@ -30,6 +30,7 @@ typedef struct player {
     User user;
     int socket;
     int hand[DECK_SIZE];
+    int hand_win_cards[DECK_SIZE];
 } Player;
 
 typedef struct game {

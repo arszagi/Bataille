@@ -86,12 +86,12 @@ int main(int argc, char ** argv){
 
         /* Configure l'écoute sur nos 4 sockets */
         for(i = 0; i < MAX_PLAYERS; i++){
-            int socket_descriptor = client_socket[i];
-            if(socket_descriptor > 0){
-                FD_SET(socket_descriptor, &file_descriptor_set);
+            sd = client_socket[i];
+            if(sd > 0){
+                FD_SET(sd, &file_descriptor_set);
             }
-            if(socket_descriptor > max_sd){
-                socket_descriptor = max_sd;
+            if(sd > max_sd){
+                max_sd = sd;
             }
         }
 
@@ -100,9 +100,9 @@ int main(int argc, char ** argv){
 
         if(select_result < 0){
             if(errno == EBADF){
-                // TODO : Error management
+                printf("File descriptor removed!\n");
             }else if(errno == EINTR){
-                // TODO : Error management
+                printf("Interrupted system call.\n");
             }
             continue;
         }
@@ -130,7 +130,7 @@ int main(int argc, char ** argv){
                         continue;
                     }
                     game_server.players[i].socket = temp_sd;
-                    printf("Joueur : %s inscrit. \n", message.payload.name);
+                    printf("Joueur : %s inscrit. socket: %d \n", message.payload.name, temp_sd);
                     Message ret;
                     ret.type = INSCRIPTION_STATUS;
                     ret.payload.number = 1;
@@ -176,7 +176,7 @@ int main(int argc, char ** argv){
              */
             if(timer_status == TIMER_OFF) {
                 /* TODO : Ajouter une ligne de log. */
-                alarm(REGISTRATION_TIMER);
+                alarm(WAITING_TIME);
                 timer_status = TIMER_ON;
             }else if(timer_status == TIMER_FINISHED && enough_players()) {
                 /* TODO : Ajouter une ligne de log */
@@ -197,6 +197,7 @@ int main(int argc, char ** argv){
 
                 switch(message.type) {
                     case SEND_CARD:
+                        printf("Carte recu (%d) du socket: %d\n", message.payload.number, temp_sd);
                         if(game_server.phase != PLAY) {
                             break;
                         }
@@ -398,7 +399,11 @@ void cancel_game(int sd) {
 
 void play_round() {
     int i;
-    int pool[game_server.player_count];
+    int pool[MAX_PLAYERS];
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        pool[i] = NO_CARD;
+    }
+
     int winner_socket;
     for(i = 0; i < game_server.player_count - 1; i++){
         if(game_server.working_memory[i] > game_server.working_memory[i+1]) {
@@ -414,19 +419,24 @@ void play_round() {
     /* Ce qu'on envoie au gagnant de la manche */
     Message winner;
     winner.type = 5;
-    memcpy(winner.payload.hand, pool, game_server.player_count);
+    memcpy(winner.payload.hand, pool, MAX_PLAYERS * sizeof(int));
+
+    /* display */
+    printf("%d %d %d \n",winner_socket, winner.payload.hand[0], winner.payload.hand[1]);
+    /* end of display */
+
     send(winner_socket, &winner, sizeof(Message), 0);
-    free(&winner);
+
 
     /* Ce qu'on envoie aux perdants de la manche */
-    Message looser;
-    looser.type = 5;
-    looser.payload.number = 0;
+    Message looser = winner;
+    looser.type = 10;
+
     for(i = 0; i < game_server.player_count; i++){
         if(game_server.players[i].socket == winner_socket) {
             continue;
         }
         send(game_server.players[i].socket, &looser, sizeof(Message), 0);
     }
-    free(&looser);
+
 }

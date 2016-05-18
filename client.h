@@ -26,6 +26,8 @@ void send_message(int code, int card);
 Message read_message(int sd);
 void send_card();
 void remove_card(int card);
+void catch_win_cards(Message win_card);
+void lost_round(Message lost_message);
 
 /*
  * Stockage des affichages du client
