@@ -26,6 +26,11 @@
 /*
  * Temps avant lancement de la partie entre deux inscriptions (en seconde)
  */
-#define WAITING_TIME 30
+#define WAITING_TIME 3
+
+/*
+ * Carte non définie
+ */
+#define NO_CARD -1
 
 #endif //BATAILLE_CONSTANTS_H
